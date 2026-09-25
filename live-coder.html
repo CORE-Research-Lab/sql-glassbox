@@ -1,0 +1,3113 @@
+<!DOCTYPE html>
+<html lang="en" data-fun="on">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SQL, step by step · CSC343</title>
+<style>
+:root {
+  --scale: 1.35;
+  --paper: #f5f7fa;
+  --panel: #ffffff;
+  --ink: #17223a;
+  --muted: #5d6679;
+  --faint: #9aa3b4;
+  --line: #2b3854;
+  --line-soft: #c9d0dc;
+
+  --from: #2c6bbf;    --from-bg: #e2edfb;
+  --join: #4b45c9;    --join-bg: #e4e3fb;
+  --del: #c62828;     --del-bg: #fde3e1;
+  --upd: #b85c00;     --upd-bg: #fdebd6;
+  --fk: #5b6ee1;      --fk-bg: #e5e9fc;
+  --where: #b57b00;   --where-bg: #fff0bf;  --where-bg2: #ffd95e;
+  --select: #1f7f4a;  --select-bg: #d9f2e2;
+  --group: #7650c4;   --group-bg: #ebe3fa;
+  --distinct: #b93d72; --distinct-bg: #fbe1ec;
+  --order: #0f7c86;   --order-bg: #d5f0f2;
+  --result: #33415e;  --result-bg: #e4e8f0;
+  --active: #e8710a;
+  --pass: #1f7f4a;    --fail: #c0392b;
+
+  --g0: #fbe9b0; --g1: #d0e3f8; --g2: #f5d4e1; --g3: #d2eed7; --g4: #e2d7f7; --g5: #cdebec;
+
+  --sans: "Segoe UI", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, "SF Mono", Menlo, "DejaVu Sans Mono", monospace;
+  --dur: 600ms;
+  --tk-k: #a13a8f; --tk-f: #b3470f; --tk-s: #1f7f4a; --tk-n: #b3470f;
+  --display: var(--sans); --bg: var(--paper);
+}
+:root[data-mode="dark"] {
+  --paper: #121824; --panel: #1b2332; --ink: #e8edf5; --muted: #a4aec0; --faint: #6e7a90;
+  --line: #7d8ba6; --line-soft: #3a465c;
+  --from: #7fb0f0; --from-bg: #1f3350; --join: #a5a1f5; --join-bg: #2c2a55;
+  --where: #f2c14e; --where-bg: #4a3b12; --where-bg2: #7a5f10;
+  --select: #6fd39a; --select-bg: #173d29;
+  --group: #b79cf0; --group-bg: #33284d;
+  --distinct: #f08cb5; --distinct-bg: #4a2033;
+  --order: #6fd0d8; --order-bg: #143d42;
+  --result: #c3cce0; --result-bg: #2a3346;
+  --del: #ff8a80; --del-bg: #4a1c1c; --upd: #ffb45e; --upd-bg: #4a2e10; --fk: #9fb0ff; --fk-bg: #262f5c;
+  --active: #ff9a3d; --pass: #6fd39a; --fail: #ff7b6b;
+  --g0: #4d4118; --g1: #1f3656; --g2: #4d2437; --g3: #1d4128; --g4: #372a56; --g5: #17403f;
+  --tk-k: #e38ad3; --tk-f: #ffab6e; --tk-s: #7fdca6; --tk-n: #ffab6e;
+}
+
+:root { box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+*, *::before, *::after { box-sizing: inherit; }
+html { font-size: calc(16px * var(--scale)); height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; height: 100%; background: var(--bg); background-attachment: fixed; color: var(--ink); font-family: var(--sans);
+  transition: background-color .4s, color .4s;
+  display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden;
+}
+button, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--from); outline-offset: 2px; }
+
+/* ---------- header ---------- */
+header {
+  display: flex; align-items: center; gap: .6rem; padding: .55rem 1.1rem;
+  border-bottom: 1px solid var(--line-soft); background: var(--hdr, var(--panel)); color: var(--hdr-ink, var(--ink));
+}
+.brand { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.brand h1 { margin: 0; font-family: var(--display); font-size: 1.15rem; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+#emblem { margin-right: .35rem; }
+.brand p { margin: 0; font-size: .7rem; color: var(--hdr-muted, var(--muted)); white-space: nowrap; }
+.spacer { flex: 1; }
+.presets { display: flex; align-items: center; gap: .5rem; }
+.presets label, header .opts { font-size: .8rem; color: var(--hdr-muted, var(--muted)); }
+.presets select { padding: .35rem .5rem; border: 1px solid var(--line-soft); border-radius: 6px; background: var(--panel); color: var(--ink); font-size: .85rem; max-width: 13rem; }
+.tool { white-space: nowrap; border: 1px solid var(--line-soft); background: var(--panel); color: var(--ink); border-radius: 6px; padding: .3rem .6rem; font-size: .8rem; cursor: pointer; }
+.tool:hover { border-color: var(--line); }
+
+/* ---------- breadcrumb ---------- */
+#crumbs {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .35rem .22rem; min-width: 0; min-height: 2.6rem;
+  margin-top: -.7rem; padding: .5rem .7rem; background: var(--panel);
+  border: 2px solid var(--line-soft); border-top: 1px dashed var(--line-soft); border-radius: 0 0 10px 10px;
+}
+#centre .editor { border-radius: 10px 10px 0 0; border-bottom: 0; }
+#centre .editor:focus-within + #crumbs { border-color: var(--from); }
+.runrow .grow { flex: 1; }
+header { min-width: 0; }
+.menu { position: relative; }
+.menu > summary { list-style: none; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu-pop {
+  position: absolute; right: 0; top: calc(100% + .4rem); z-index: 70; min-width: 16rem;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line-soft); border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .18); padding: .7rem .8rem; display: flex; flex-direction: column; gap: .6rem; font-size: .85rem;
+}
+.menu-pop label, .menu-row { display: flex; align-items: center; gap: .45rem; white-space: nowrap; }
+.menu-pop select { padding: .2rem .3rem; border: 1px solid var(--line-soft); border-radius: 6px; background: var(--panel); color: var(--ink); }
+.menu-pop input { width: 1rem; height: 1rem; accent-color: var(--from); }
+.fks[hidden], #egg[hidden] { display: none; }
+#crumbs .hint { color: var(--faint); font-size: .85rem; }
+.btn.nav { font-size: 1rem; padding: .38rem .8rem; }
+.dots { display: inline-flex; gap: .15rem; margin-left: .32rem; vertical-align: middle; }
+.sd { width: .42rem; height: .42rem; border-radius: 50%; border: 1.5px solid currentColor; opacity: .7; cursor: pointer; }
+.sd.done { background: currentColor; opacity: .5; }
+.sd.on { background: currentColor; opacity: 1; transform: scale(1.35); }
+.crumb.now .sd { border-color: var(--panel); }
+.crumb.now .sd.on, .crumb.now .sd.done { background: var(--panel); }
+.crumb {
+  --c: var(--result); --cbg: var(--result-bg); display: inline-flex; align-items: center;
+  border: 2px solid var(--c); color: var(--c); background: transparent; border-radius: 999px;
+  padding: .1rem .42rem; font-weight: 700; font-size: .76rem; cursor: pointer; opacity: .55; white-space: nowrap;
+  font-family: var(--mono); letter-spacing: .01em; transition: opacity .2s, background .2s;
+}
+.crumb.done { opacity: .9; background: var(--cbg); }
+.crumb.now { opacity: 1; background: var(--c); color: var(--panel); box-shadow: 0 0 0 4px var(--cbg); }
+.arrow { color: var(--faint); font-size: .75rem; }
+.scope-lbl { font-size: .66rem; color: var(--muted); border: 1px dashed var(--faint); border-radius: 6px; padding: .1rem .45rem; margin-right: .1rem; }
+.scope-sep { flex-basis: 100%; height: 0; }
+.st-from { --c: var(--from); --cbg: var(--from-bg); }
+.st-join { --c: var(--join); --cbg: var(--join-bg); }
+.st-del { --c: var(--del); --cbg: var(--del-bg); }
+.st-upd { --c: var(--upd); --cbg: var(--upd-bg); }
+.st-fk { --c: var(--fk); --cbg: var(--fk-bg); }
+.st-where { --c: var(--where); --cbg: var(--where-bg); }
+.st-group { --c: var(--group); --cbg: var(--group-bg); }
+.st-select { --c: var(--select); --cbg: var(--select-bg); }
+.st-distinct { --c: var(--distinct); --cbg: var(--distinct-bg); }
+.st-order { --c: var(--order); --cbg: var(--order-bg); }
+.st-result { --c: var(--result); --cbg: var(--result-bg); }
+
+/* ---------- main layout ---------- */
+#stage {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(31rem, 1fr) minmax(0, 1.1fr);
+  gap: 1rem; padding: .8rem 1.1rem; min-height: 0;
+}
+.region { min-height: 0; overflow: auto; display: flex; flex-direction: column; padding: .2rem; }
+.panels { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 1rem 1.25rem; }
+#right .panels { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; }
+
+/* ---------- centre ---------- */
+#centre { display: flex; flex-direction: column; gap: .7rem; min-height: 0; overflow: auto; padding: .2rem; }
+.runrow { display: flex; gap: .5rem; }
+.editor {
+  position: relative; border: 2px solid var(--line-soft); border-radius: 10px; background: var(--panel);
+  font-family: var(--mono); font-size: 1.05rem; line-height: 1.55; flex: none;
+}
+.editor:focus-within { border-color: var(--from); }
+.editor pre, .editor textarea {
+  margin: 0; padding: .7rem .85rem; font: inherit; line-height: inherit; white-space: pre-wrap; overflow-wrap: break-word;
+  word-break: normal; tab-size: 2; border: 0; width: 100%; letter-spacing: 0;
+}
+.editor pre { position: absolute; inset: 0; pointer-events: none; overflow: hidden; color: var(--ink); }
+.editor textarea {
+  position: relative; display: block; resize: none; background: transparent; color: transparent; caret-color: var(--ink);
+  outline: none; overflow: hidden; min-height: 5rem;
+}
+.editor textarea::selection { background: rgba(44, 107, 191, .28); color: transparent; }
+.tk-k { color: var(--tk-k); font-weight: 700; }
+.tk-f { color: var(--tk-f); font-weight: 700; }
+.tk-s { color: var(--tk-s); }
+.tk-n { color: var(--tk-n); }
+.tk-c { color: var(--faint); font-style: italic; }
+.editor .dim { opacity: .32; }
+.editor [class*="h-"] { border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.editor .h-from { background: var(--from-bg); box-shadow: inset 0 -3px 0 var(--from); }
+.editor .h-del { background: var(--del-bg); box-shadow: inset 0 -3px 0 var(--del); }
+.editor .h-upd { background: var(--upd-bg); box-shadow: inset 0 -3px 0 var(--upd); }
+.editor .h-join { background: var(--join-bg); box-shadow: inset 0 -3px 0 var(--join); }
+.editor .h-where { background: var(--where-bg); box-shadow: inset 0 -3px 0 var(--where); }
+.editor .h-group { background: var(--group-bg); box-shadow: inset 0 -3px 0 var(--group); }
+.editor .h-select { background: var(--select-bg); box-shadow: inset 0 -3px 0 var(--select); }
+.editor .h-distinct { background: var(--distinct-bg); box-shadow: inset 0 -3px 0 var(--distinct); }
+.editor .h-order { background: var(--order-bg); box-shadow: inset 0 -3px 0 var(--order); }
+.editor .h2 { background: color-mix(in srgb, var(--hc, var(--select)) 30%, var(--panel)); box-shadow: inset 0 -4px 0 var(--hc, var(--select)); border-radius: 0; }
+.editor .err { text-decoration: wavy underline var(--fail) 2px; text-underline-offset: 4px; background: rgba(192, 57, 43, .12); }
+
+.controls { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+.btn {
+  border: 2px solid var(--line-soft); background: var(--panel); border-radius: 8px; padding: .38rem .8rem;
+  font-weight: 600; font-size: .95rem; cursor: pointer; display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { border-color: var(--line); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.btn.playing { background: var(--active); color: #fff; border-color: var(--active); }
+.opts { display: flex; gap: .6rem; align-items: center; font-size: .82rem; color: var(--muted); white-space: nowrap; }
+.opts select { padding: .2rem .3rem; border: 1px solid var(--line-soft); border-radius: 6px; background: var(--panel); }
+.opts label { display: inline-flex; align-items: center; gap: .35rem; cursor: pointer; }
+.opts input { width: 1.05rem; height: 1.05rem; accent-color: var(--from); }
+
+.caption {
+  position: relative; margin-top: .9rem; padding: 1.3rem 2.6rem; min-height: 5.6rem;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+}
+.caption > * { position: relative; }
+.caption .cloud { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.caption .cloud path { fill: var(--panel); stroke: var(--c, var(--line-soft)); stroke-width: 2.5px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.caption .puff { position: absolute; border-radius: 50%; background: var(--panel); border: 2.5px solid var(--c, var(--line-soft)); }
+.caption .puff.p1 { width: .85rem; height: .85rem; left: 3.2rem; top: -.35rem; }
+.caption .puff.p2 { width: .5rem; height: .5rem; left: 2.3rem; top: -1.05rem; }
+.caption.empty { visibility: hidden; }
+.caption .cap { font-family: var(--display); font-size: 1.3rem; font-weight: 600; line-height: 1.3; }
+.caption .test { font-family: var(--mono); font-size: 1.2rem; font-weight: 700; }
+.caption .test.ok { color: var(--pass); } .caption .test.bad { color: var(--fail); }
+.vchip { display: inline-block; background: var(--from); color: var(--panel); border-radius: 6px; padding: 0 .4rem; font-weight: 700; }
+
+.error {
+  border: 2px solid var(--fail); background: color-mix(in srgb, var(--fail) 9%, var(--panel)); border-radius: 10px;
+  padding: .6rem .8rem; font-size: 1.02rem; line-height: 1.35;
+}
+.error .ecl { font-family: var(--mono); font-weight: 700; color: var(--fail); margin-right: .4rem; }
+
+/* ---------- tables ---------- */
+.panel { position: relative; }
+.ptitle { font-family: var(--display); display: flex; align-items: center; gap: .45rem; margin-bottom: .3rem; font-weight: 700; font-size: 1.05rem; flex-wrap: wrap; }
+.tname { padding: 0 .25rem; border-radius: 4px; }
+.tname.from { background: var(--from-bg); box-shadow: inset 0 -3px 0 var(--from); }
+.badge { font-family: var(--mono); background: var(--active); color: #fff; border-radius: 6px; padding: 0 .45rem; font-size: .95rem; }
+.tag { font-size: .72rem; font-weight: 600; color: var(--muted); border: 1px dashed var(--faint); border-radius: 999px; padding: .05rem .5rem; }
+.note { font-weight: 500; font-size: .85rem; color: var(--muted); }
+.panel.group .ptitle .gl { background: var(--gc); padding: .05rem .5rem; border-radius: 6px; font-family: var(--mono); font-size: .95rem; }
+
+.tbl { display: grid; font-size: 1.12rem; font-variant-numeric: tabular-nums; }
+.tbl.w6 { font-size: .98rem; } .tbl.w8 { font-size: .86rem; }
+.tbl.w6 .th, .tbl.w6 .td { padding: .28rem .5rem; }
+.tbl.tall { font-size: .8rem; }
+.th, .td { padding: .3rem .7rem; border-right: 1.5px solid var(--line); border-bottom: 1.5px solid var(--line); white-space: nowrap; background: var(--panel); }
+.th { font-weight: 700; background: var(--result-bg); border-top: 1.5px solid var(--line); font-size: .92em; }
+.th .q { display: block; font-family: var(--mono); font-size: .72em; font-weight: 700; color: var(--active); line-height: 1.1; }
+.th.first, .td.first { border-left: 1.5px solid var(--line); }
+.td.num { text-align: right; }
+.td.mk, .th.mk { border: 0; background: transparent; padding: .3rem .4rem; font-weight: 800; }
+.mk.yes { color: var(--pass); } .mk.no { color: var(--fail); } .mk.dup { color: var(--distinct); font-size: .8em; }
+.mk.ptr { color: var(--active); font-family: var(--mono); }
+.mk.nomatch { color: var(--active); font-size: .8em; }
+.td.null { color: var(--faint); font-style: italic; font-size: .85em; }
+.td.padded:not(.mk), .td.nomatch:not(.mk) { background: color-mix(in srgb, var(--active) 14%, var(--panel)); }
+.td.padded.null { background: color-mix(in srgb, var(--active) 26%, var(--panel)); color: var(--active); font-weight: 700; }
+.panel.schema { font-family: var(--mono); font-size: .9rem; line-height: 1.7; border-left: 4px solid var(--line-soft); padding-left: .7rem; }
+.ins { border: 0; background: none; padding: 0 .1rem; font: inherit; color: inherit; cursor: pointer; border-radius: 4px; }
+.ins:hover { background: var(--from-bg); color: var(--from); }
+.tbl-ins { font-weight: 700; }
+.schema-tip { font-family: var(--sans); font-size: .75rem; color: var(--faint); margin-top: .3rem; }
+.editor textarea::placeholder { color: var(--faint); opacity: 1; }
+.td.emptyrow { grid-column: 1 / -1; color: var(--faint); font-style: italic; text-align: center; border-left: 1.5px solid var(--line); }
+.panel.temp .th, .panel.temp .td:not(.mk) { border-style: dashed; }
+.panel.final .th { background: var(--ink); color: var(--panel); }
+
+/* column states */
+.th.chk { background: var(--where-bg2); } .td.chk { background: var(--where-bg); }
+.td.chk2 { background: var(--where-bg2); font-weight: 800; }
+.th.sel { background: var(--select); color: var(--panel); } .td.sel { background: var(--select-bg); }
+.th.drop, .td.drop {
+  color: var(--faint);
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--faint) 22%, transparent) 6px 8px);
+}
+.th.grp { background: var(--group); color: var(--panel); } .td.grp { font-weight: 700; }
+.th.agg { background: var(--select); color: var(--panel); } .td.agg { box-shadow: inset 0 0 0 3px var(--select); font-weight: 700; }
+.th.sort { background: var(--order); color: var(--panel); } .td.sort { background: var(--order-bg); font-weight: 700; }
+.th.ghost, .td.ghost { border-style: dashed; color: var(--order); font-style: italic; background: transparent; }
+
+/* row states */
+.td.g0 { background: var(--g0); } .td.g1 { background: var(--g1); } .td.g2 { background: var(--g2); }
+.td.g3 { background: var(--g3); } .td.g4 { background: var(--g4); } .td.g5 { background: var(--g5); }
+.td.pass:not(.mk) { background: color-mix(in srgb, var(--pass) 16%, var(--panel)); }
+.td.pass.chk2 { background: color-mix(in srgb, var(--pass) 30%, var(--panel)); }
+.td.fail:not(.mk) { opacity: .35; }
+.td.fail.mk { opacity: 1; }
+.td.pending:not(.mk) { opacity: .45; }
+.td.active:not(.mk) { box-shadow: inset 0 3px 0 var(--active), inset 0 -3px 0 var(--active); }
+.td.active.first { box-shadow: inset 0 3px 0 var(--active), inset 0 -3px 0 var(--active), inset 3px 0 0 var(--active); }
+.td.active.lastc { box-shadow: inset 0 3px 0 var(--active), inset 0 -3px 0 var(--active), inset -3px 0 0 var(--active); }
+.td.aggrow:not(.mk) { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--select) 55%, transparent); }
+.panel.group { padding-left: .6rem; border-left: 8px solid var(--gc); }
+.gc0 { --gc: var(--g0); } .gc1 { --gc: var(--g1); } .gc2 { --gc: var(--g2); } .gc3 { --gc: var(--g3); } .gc4 { --gc: var(--g4); } .gc5 { --gc: var(--g5); }
+
+/* ---------- combination grid ---------- */
+.xgrid { display: grid; gap: 4px; align-items: center; font-size: .82rem; }
+.xgrid .cl { text-align: center; color: var(--muted); font-weight: 600; padding: 0 .15rem; white-space: nowrap; line-height: 1.15; align-self: end; }
+.xgrid .rl { text-align: right; color: var(--muted); font-weight: 600; padding-right: .4rem; white-space: nowrap; }
+.xgrid .rl.on { color: var(--active); }
+.xgrid .corner { font-family: var(--mono); font-size: .75rem; color: var(--faint); text-align: right; padding-right: .4rem; }
+.dot { width: 1.55rem; height: 1.55rem; border-radius: 50%; margin: 0 auto; display: grid; place-items: center; font-size: .8rem; font-weight: 800; }
+.dot.n { border: 2px solid var(--line-soft); }
+.dot.p { background: var(--pass); color: var(--panel); }
+.dot.f { background: var(--line-soft); color: var(--faint); transform: scale(.7); }
+.dot.on { outline: 3px solid var(--active); outline-offset: 1px; }
+
+/* ---------- aggregate boxes ---------- */
+.panel.agg { border: 2px solid var(--select); border-radius: 10px; padding: .5rem .7rem; background: var(--panel); min-width: 14rem; max-width: 100%; }
+.panel.agg.gcol { border-left: 10px solid var(--gc); }
+.agg .fn { font-family: var(--mono); color: var(--select); }
+.chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.chip { font-size: 1.05rem; font-variant-numeric: tabular-nums; border: 2px solid var(--select); background: var(--select-bg); border-radius: 6px; padding: .05rem .45rem; font-weight: 700; }
+.chip.dup { opacity: .35; text-decoration: line-through; border-style: dashed; }
+.chip.null { opacity: .4; font-style: italic; }
+.chip.gone { animation: fold .45s ease-out forwards; animation-delay: calc(var(--i) * 40ms); }
+.chip.winner { border-color: var(--active); box-shadow: 0 0 0 3px var(--active); }
+.agg-res { display: flex; align-items: baseline; gap: .6rem; margin-top: .4rem; flex-wrap: wrap; }
+.formula { font-family: var(--mono); color: var(--muted); font-size: .95rem; }
+.res { font-size: 1.9rem; font-weight: 800; color: var(--select); animation: pop .45s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: .35s; }
+@keyframes fold { to { opacity: .28; transform: scale(.85); } }
+@keyframes pop { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: scale(1); } }
+
+/* ---------- value, placeholder ---------- */
+.panel.value .vbox { display: inline-block; font-size: 1.9rem; font-weight: 800; border: 2px dashed var(--line); border-radius: 8px; padding: .1rem .9rem; background: var(--panel); }
+.panel.ph {
+  width: 100%; min-height: 9rem; border: 2px dashed var(--line-soft); border-radius: 12px; display: grid; place-items: center;
+  color: var(--faint); font-size: 3.2rem; font-weight: 700;
+}
+.panel.ph.small { min-height: 4rem; font-size: 1rem; }
+.panel.ph.idle { font-size: 1.1rem; font-weight: 500; text-align: center; padding: 1rem; }
+
+/* ---------- motion ---------- */
+#fly { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+.enter { animation: enter .3s ease-out both; }
+.just-fail:not(.mk) { animation: dimout .5s ease-out both; }
+.just-pass:not(.mk) { animation: flash .6s ease-out both; }
+.just-mark { animation: enter .3s ease-out both; }
+@keyframes enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dimout { from { opacity: 1; } to { opacity: .35; } }
+@keyframes flash { from { filter: brightness(.85); } to { filter: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .enter, .just-fail, .just-pass, .chip.gone, .res { animation: none !important; }
+  .chip.gone { opacity: .28; }
+}
+
+@media (max-width: 1100px) {
+  body { overflow: auto; height: auto; }
+  #stage { grid-template-columns: 1fr; }
+  #centre { order: -1; }
+}
+
+.ra { font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", "STIX Two Text", "DejaVu Sans", "Segoe UI Symbol", serif; font-weight: 400; font-size: 1.4em; line-height: 1; padding: 0 .1em; vertical-align: -.08em; }
+
+/* ---------- easter eggs ---------- */
+#egg {
+  position: fixed; right: 1.2rem; bottom: 1.2rem; z-index: 60; width: min(34rem, 44vw);
+  display: flex; flex-direction: column; gap: .7rem; padding: 2rem .2rem .2rem;
+}
+.egg-x {
+  position: absolute; top: 0; right: .2rem; border: 1px solid var(--line-soft); background: var(--panel); color: var(--muted);
+  border-radius: 999px; width: 1.7rem; height: 1.7rem; cursor: pointer; font-size: 1rem; line-height: 1;
+}
+.bubble {
+  position: relative; background: var(--panel); border: 2.5px solid var(--ink); border-radius: 18px;
+  padding: .7rem 1rem .8rem; box-shadow: 0 8px 24px rgba(0, 0, 0, .14); animation: pop-in .35s cubic-bezier(.2, 1.3, .4, 1) both;
+  max-width: 92%;
+}
+.bubble.b-left { align-self: flex-start; border-bottom-left-radius: 4px; }
+.bubble.b-right { align-self: flex-end; border-bottom-right-radius: 4px; border-color: var(--active); }
+.bubble .who { display: inline-block; font-family: var(--mono); font-weight: 800; font-size: .8rem; background: var(--ink); color: var(--panel); border-radius: 6px; padding: 0 .45rem; margin-bottom: .3rem; }
+.bubble.b-right .who { background: var(--active); color: #fff; }
+.bubble .said { font-size: 1.05rem; line-height: 1.35; }
+@keyframes pop-in { from { opacity: 0; transform: translateY(12px) scale(.92); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bubble { animation: none; } }
+
+/* =====================================================================
+   DATASET THEMES (only while the fun look is on), each with a light and a
+   dark variant. Stage colours keep their meaning in every theme; dark
+   variants inherit the dark stage palette from :root[data-mode="dark"].
+   ===================================================================== */
+
+/* University: the lecture's slate blue */
+:root[data-fun][data-ds="uni"] {
+  --paper: #eef3f9; --bg: linear-gradient(180deg, #e3ecf6 0%, #f4f7fb 60%);
+  --hdr: #3e5a82; --hdr-ink: #fff; --hdr-muted: #d4e0ef;
+  --display: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="uni"] {
+  --paper: #111a2a; --panel: #1a2438; --ink: #e6edf8; --muted: #9fb0cc; --line: #7f93b8; --line-soft: #34425e; --result-bg: #26324b;
+  --bg: linear-gradient(180deg, #0f1828 0%, #152036 100%);
+  --hdr: #243a5c; --hdr-ink: #fff; --hdr-muted: #b8c9e2;
+}
+
+/* Café: warm paper, espresso ink */
+:root[data-fun][data-ds="cafe"] {
+  --paper: #f7efe3; --panel: #fffaf2; --ink: #3b2a20; --muted: #7a6152; --faint: #b19a88;
+  --line: #5a3e2e; --line-soft: #dcc9b5; --result-bg: #f0e2cf; --active: #c0582b;
+  --bg: radial-gradient(circle at 88% 12%, rgba(140, 90, 60, .10) 0 5.5rem, transparent 5.6rem), #f7efe3;
+  --hdr: #4a3226; --hdr-ink: #fdf3e6; --hdr-muted: #d8c2ad;
+  --display: Georgia, "Times New Roman", serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="cafe"] {
+  --paper: #1c1410; --panel: #2a1f18; --ink: #f4e7d7; --muted: #c8ae95; --faint: #8d7662; --line: #a4876e; --line-soft: #45352a; --result-bg: #3a2b20;
+  --bg: radial-gradient(circle at 88% 12%, rgba(220, 170, 120, .08) 0 5.5rem, transparent 5.6rem), #1c1410;
+  --hdr: #120c09; --hdr-ink: #f4e7d7; --hdr-muted: #c8ae95; --active: #ff9a5c;
+}
+
+/* Animal shelter: mint with faint paw prints */
+:root[data-fun][data-ds="shelter"] {
+  --paper: #eef8f2; --panel: #ffffff; --ink: #1f3b33; --muted: #58756b; --line: #2f5a4c; --line-soft: #bfe0d2;
+  --result-bg: #dff2e8; --active: #e0673a;
+  --bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='%232f5a4c' fill-opacity='.07' transform='rotate(-18 60 60)'%3E%3Cellipse cx='60' cy='70' rx='14' ry='11'/%3E%3Ccircle cx='44' cy='52' r='5.5'/%3E%3Ccircle cx='55' cy='45' r='5.5'/%3E%3Ccircle cx='67' cy='45' r='5.5'/%3E%3Ccircle cx='77' cy='53' r='5.5'/%3E%3C/g%3E%3C/svg%3E") repeat, #eef8f2;
+  --hdr: #2f6f5b; --hdr-ink: #fff; --hdr-muted: #cfeee2;
+  --display: "Trebuchet MS", "Segoe UI", Verdana, sans-serif; --sans: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="shelter"] {
+  --paper: #0f1f19; --panel: #172a23; --ink: #e2f3ea; --muted: #9cc4b3; --line: #6fa691; --line-soft: #2b453b; --result-bg: #1f3a30;
+  --bg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='%23bfe0d2' fill-opacity='.07' transform='rotate(-18 60 60)'%3E%3Cellipse cx='60' cy='70' rx='14' ry='11'/%3E%3Ccircle cx='44' cy='52' r='5.5'/%3E%3Ccircle cx='55' cy='45' r='5.5'/%3E%3Ccircle cx='67' cy='45' r='5.5'/%3E%3Ccircle cx='77' cy='53' r='5.5'/%3E%3C/g%3E%3C/svg%3E") repeat, #0f1f19;
+  --hdr: #143a2e; --hdr-ink: #fff; --hdr-muted: #a9d8c5; --active: #ff8a5c;
+}
+
+/* Space missions: bright mission-control daylight / night sky */
+:root[data-fun][data-ds="space"] {
+  --paper: #eef3fb; --panel: #ffffff; --ink: #14203a; --muted: #56648a; --line: #2b3b66; --line-soft: #c9d4ec; --result-bg: #e2e9f8;
+  --bg: radial-gradient(circle at 105% -10%, rgba(80, 120, 220, .16) 0 18rem, transparent 18.1rem),
+        radial-gradient(circle at 105% -10%, transparent 0 22rem, rgba(80, 120, 220, .12) 22.1rem 22.4rem, transparent 22.5rem), #eef3fb;
+  --hdr: #14203a; --hdr-ink: #e8eefc; --hdr-muted: #9fb0d6;
+  --display: "Bahnschrift", "DIN Alternate", "Segoe UI", sans-serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="space"] {
+  --paper: #0d1326; --panel: #151d36; --ink: #e8eefc; --muted: #9fb0d6; --faint: #6b7aa0; --line: #8193c4; --line-soft: #2f3b61; --result-bg: #26304a;
+  --bg: radial-gradient(1px 1px at 12% 22%, #fff 99%, transparent), radial-gradient(1px 1px at 68% 14%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 38% 78%, #fff 99%, transparent), radial-gradient(1px 1px at 84% 62%, #fff 99%, transparent), radial-gradient(1px 1px at 22% 58%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 92% 88%, #fff 99%, transparent), radial-gradient(1px 1px at 54% 40%, #fff 99%, transparent), radial-gradient(1px 1px at 6% 92%, #fff 99%, transparent), radial-gradient(1px 1px at 31% 8%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 76% 34%, #fff 99%, transparent), radial-gradient(ellipse at 80% 110%, rgba(80, 110, 220, .35), transparent 60%), #0b1024;
+  --hdr: #0a0f20; --hdr-ink: #e8eefc; --hdr-muted: #8fa2cf;
+}
+
+/* Star Wars: desert-planet sand by day, gold-trimmed black starfield by night */
+:root[data-fun][data-ds="starwars"] {
+  --paper: #f6ead2; --panel: #fffaf0; --ink: #33261a; --muted: #7d6650; --faint: #b49c80; --line: #6b5037; --line-soft: #e0caa6; --result-bg: #f0dfbf; --active: #c86a17;
+  --bg: radial-gradient(ellipse 140% 40% at 50% 115%, #e6c893 0 60%, transparent 61%),
+        radial-gradient(ellipse 120% 35% at 20% 120%, #dbb77a 0 60%, transparent 61%),
+        radial-gradient(circle at 85% 12%, #fff3c9 0 3rem, rgba(255, 220, 150, .35) 3.1rem 5rem, transparent 5.1rem),
+        linear-gradient(180deg, #f9e9c9 0%, #f6ead2 70%);
+  --hdr: #1a130c; --hdr-ink: #f5b93e; --hdr-muted: #cdb88f;
+  --display: "Futura", "Century Gothic", "Avenir Next", "Segoe UI", sans-serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="starwars"] {
+  --paper: #07070b; --panel: #121218; --ink: #f1ede2; --muted: #b6ad97; --faint: #7d7768; --line: #a89a6c; --line-soft: #34312a; --result-bg: #262430; --active: #f5b93e;
+  --bg: radial-gradient(1px 1px at 12% 22%, #fff 99%, transparent), radial-gradient(1px 1px at 68% 14%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 38% 78%, #fff 99%, transparent), radial-gradient(1px 1px at 84% 62%, #fff 99%, transparent), radial-gradient(1px 1px at 22% 58%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 92% 88%, #fff 99%, transparent), radial-gradient(1px 1px at 54% 40%, #fff 99%, transparent), radial-gradient(1px 1px at 6% 92%, #fff 99%, transparent), radial-gradient(1px 1px at 31% 8%, #fff 99%, transparent), radial-gradient(1.5px 1.5px at 76% 34%, #fff 99%, transparent), #050508;
+  --hdr: #000; --hdr-ink: #f5b93e; --hdr-muted: #b6ad97;
+}
+:root[data-fun][data-ds="starwars"] .brand h1 { letter-spacing: .12em; text-transform: uppercase; }
+
+/* Pokémon-style handheld: bright or dark screen, red shell */
+:root[data-fun][data-ds="pokemon"] {
+  --paper: #f3f7ee; --panel: #ffffff; --ink: #1d2230; --line: #1d2230; --line-soft: #c9d3bf; --result-bg: #e8f0dc; --active: #e3350d;
+  --bg: linear-gradient(rgba(29, 34, 48, .045) 1px, transparent 1px) 0 0 / 14px 14px,
+        linear-gradient(90deg, rgba(29, 34, 48, .045) 1px, transparent 1px) 0 0 / 14px 14px, #f3f7ee;
+  --hdr: #d7261e; --hdr-ink: #fff; --hdr-muted: #ffe3a3;
+  --display: "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="pokemon"] {
+  --paper: #141922; --panel: #1d2430; --ink: #eef2f8; --muted: #a9b3c4; --line: #aab4c8; --line-soft: #333d4f; --result-bg: #283244; --active: #ff6b4a;
+  --bg: linear-gradient(rgba(255, 255, 255, .04) 1px, transparent 1px) 0 0 / 14px 14px,
+        linear-gradient(90deg, rgba(255, 255, 255, .04) 1px, transparent 1px) 0 0 / 14px 14px, #141922;
+  --hdr: #a81b15; --hdr-ink: #fff; --hdr-muted: #ffd98a;
+}
+:root[data-fun][data-ds="pokemon"] .th, :root[data-fun][data-ds="pokemon"] .td { border-width: 2px; }
+
+/* Studio Ghibli-inspired: soft sky over meadow, or a starry night meadow */
+:root[data-fun][data-ds="ghibli"] {
+  --paper: #eaf5fb; --panel: #fffffb; --ink: #23343a; --muted: #5a7078; --line: #3f5b52; --line-soft: #c3dccd; --result-bg: #e5f1e0;
+  --bg: linear-gradient(180deg, #bfe3f5 0%, #e3f3fa 45%, #eef7e6 80%, #d6ecc4 100%);
+  --hdr: #5d8f6b; --hdr-ink: #fff; --hdr-muted: #e2f1d8;
+  --display: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="ghibli"] {
+  --paper: #111c2b; --panel: #192636; --ink: #e8f0f2; --muted: #a3b8c0; --line: #7f9fa0; --line-soft: #2e4152; --result-bg: #22354a;
+  --bg: radial-gradient(1px 1px at 12% 22%, #fff8d8 99%, transparent), radial-gradient(1px 1px at 68% 14%, #fff8d8 99%, transparent), radial-gradient(1.5px 1.5px at 38% 78%, #fff8d8 99%, transparent), radial-gradient(1px 1px at 84% 62%, #fff8d8 99%, transparent), radial-gradient(1px 1px at 22% 58%, #fff8d8 99%, transparent), radial-gradient(1.5px 1.5px at 92% 88%, #fff8d8 99%, transparent), radial-gradient(1px 1px at 54% 40%, #fff8d8 99%, transparent), radial-gradient(1px 1px at 6% 92%, #fff8d8 99%, transparent), radial-gradient(1px 1px at 31% 8%, #fff8d8 99%, transparent), radial-gradient(1.5px 1.5px at 76% 34%, #fff8d8 99%, transparent), linear-gradient(180deg, #0e1a2e 0%, #1a2c45 55%, #1c3526 100%);
+  --hdr: #2c4a37; --hdr-ink: #fff; --hdr-muted: #c9e3cf;
+}
+
+/* Board game night: green felt and walnut */
+:root[data-fun][data-ds="games"] {
+  --paper: #1f5a3e; --panel: #fdf8ec; --ink: #2a1d12; --muted: #6d5a45; --faint: #a4927b; --line: #4a3322; --line-soft: #d9c9ac;
+  --result-bg: #f1e5c8; --active: #c8342b;
+  --bg: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .05), transparent 50%),
+        repeating-linear-gradient(45deg, rgba(0, 0, 0, .035) 0 2px, transparent 2px 5px), #1e5a3d;
+  --hdr: #4a2f1c; --hdr-ink: #fbeed3; --hdr-muted: #d9bf98;
+  --display: Georgia, "Times New Roman", serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="games"] {
+  --paper: #0d2a1c; --panel: #2a1e14; --ink: #fbeed3; --muted: #d4bd9a; --faint: #97826a; --line: #b8966c; --line-soft: #4d3a28; --result-bg: #3b2a1b;
+  --bg: repeating-linear-gradient(45deg, rgba(0, 0, 0, .12) 0 2px, transparent 2px 5px), #0d2a1c;
+  --hdr: #24170d; --hdr-ink: #fbeed3; --hdr-muted: #c8ad85; --active: #ff6a5c;
+}
+:root[data-fun][data-ds="games"] .ptitle, :root[data-fun][data-ds="games"] .mk,
+:root[data-fun][data-ds="games"] .xgrid .rl, :root[data-fun][data-ds="games"] .xgrid .cl,
+:root[data-fun][data-ds="games"] .xgrid .corner { color: #fbeed3; }
+:root[data-fun][data-ds="games"] .mk.yes { color: #9ff0b8; }
+:root[data-fun][data-ds="games"] .mk.no { color: #ffb4a8; }
+:root[data-fun][data-ds="games"] .panel.ph { border-color: rgba(251, 238, 211, .4); color: rgba(251, 238, 211, .6); }
+
+/* ---------- theme pictures (original illustrations, fun look only) ---------- */
+#stage { position: relative; z-index: 1; }
+header { position: relative; z-index: 2; }
+#art { position: fixed; right: 1.5rem; bottom: 1rem; width: min(19rem, 22vw); z-index: 0; pointer-events: none; color: var(--ink);
+  opacity: .92; animation: enter .6s ease-out both; }
+#art svg { display: block; width: 100%; height: auto; }
+:root:not([data-fun]) #art { display: none; }
+
+/* ---------- DML ---------- */
+.td.doomed:not(.mk) { background: var(--del-bg); text-decoration: line-through; text-decoration-color: var(--del); text-decoration-thickness: 2px; }
+.td.target:not(.mk) { background: var(--upd-bg); }
+.th.setcol { background: var(--upd); color: #fff; } .td.setcol { font-weight: 700; }
+.td.changed { background: var(--upd-bg); box-shadow: inset 0 0 0 2.5px var(--upd); font-weight: 800; color: var(--upd); }
+.td.refd:not(.mk) { box-shadow: inset 0 3px 0 var(--fk), inset 0 -3px 0 var(--fk); background: var(--fk-bg); }
+.td.blocked:not(.mk) { box-shadow: inset 0 0 0 2.5px var(--del); background: var(--del-bg); }
+.td.nulled { background: color-mix(in srgb, var(--active) 22%, var(--panel)); color: var(--active); font-weight: 700; font-style: italic; }
+.mk.del { color: var(--del); font-size: .8em; } .mk.ref { color: var(--fk); font-size: .8em; }
+.panel.reject { display: flex; align-items: center; gap: .8rem; border: 3px solid var(--del); color: var(--del); background: var(--del-bg);
+  border-radius: 12px; padding: .8rem 1.2rem; font-size: 1.25rem; font-weight: 800; }
+.panel.reject .rx { font-size: 2.4rem; line-height: 1; }
+.fks { border: 1.5px solid var(--line-soft); border-radius: 10px; padding: .45rem .7rem; background: var(--panel); font-size: .82rem; display: flex; flex-direction: column; gap: .25rem; }
+.fk-title { font-size: .72rem; color: var(--muted); }
+.fkrow { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; padding: .2rem .35rem; border-radius: 6px; transition: background .2s; }
+.fkrow code { font-family: var(--mono); font-weight: 700; flex-basis: 100%; }
+.th.fkcol { background: var(--fk); color: #fff; } .td.fkcol { font-weight: 700; }
+.fkrow label { color: var(--muted); white-space: nowrap; }
+.fkrow select { font-family: var(--mono); font-size: .8rem; border: 1px solid var(--line-soft); border-radius: 5px; background: var(--panel); color: var(--ink); padding: .1rem .2rem; }
+.fkrow.on { background: var(--fk-bg); box-shadow: inset 4px 0 0 var(--fk); }
+
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <h1><span id="emblem" aria-hidden="true"></span>SQL, step by step</h1>
+  </div>
+  <div class="spacer"></div>
+  <div class="presets">
+    <label for="dataset">Dataset</label>
+    <select id="dataset"></select>
+    <label for="preset">Example</label>
+    <select id="preset"></select>
+    <button class="tool" id="restore" title="Undo your edits to this example">Restore</button>
+  </div>
+  <button class="tool" id="mode" title="Switch light / dark">☾ Dark</button>
+  <details class="menu" id="menu">
+    <summary class="tool" title="Options">⚙ Options</summary>
+    <div class="menu-pop">
+      <label title="Check WHERE one row at a time"><input type="checkbox" id="rowbyrow"> WHERE row by row</label>
+      <label title="Surprise dialogue when certain results appear"><input type="checkbox" id="eggs" checked> Easter eggs</label>
+      <label>Auto-play speed <select id="speed"><option value="slow">slow</option><option value="normal" selected>normal</option><option value="fast">fast</option></select></label>
+      <div class="menu-row">Text size <button class="tool" id="smaller" title="Smaller text">A−</button><button class="tool" id="bigger" title="Bigger text">A+</button></div>
+      <div class="menu-row">Look <button class="tool" id="theme" title="Switch between the dataset's fun look and a plain look">Plain</button></div>
+    </div>
+  </details>
+</header>
+<main id="stage">
+  <section class="region" id="left" aria-label="Input tables">
+    <div class="panels"></div>
+  </section>
+  <section id="centre" aria-label="Query">
+    <div class="editor">
+      <pre id="hl" aria-hidden="true"></pre>
+      <textarea id="sql" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="SQL query" placeholder="SELECT …&#10;FROM …&#10;WHERE …;"></textarea>
+    </div>
+    <nav id="crumbs" aria-label="Steps"></nav>
+    <div class="runrow">
+      <button class="btn primary" id="run" title="Run (Ctrl+Enter)">Run</button>
+      <button class="btn" id="reset" title="Back to the data">Reset</button>
+      <span class="grow"></span>
+      <button class="btn nav" id="prev" title="Previous step (← or PageUp)" aria-label="Previous step">◀</button>
+      <button class="btn nav" id="next" title="Next step (→, Space or PageDown)" aria-label="Next step">▶</button>
+      <button class="btn" id="play" title="Auto play (P)">▶▶ Auto</button>
+    </div>
+    <div class="fks" id="fks" hidden></div>
+    <div class="caption" id="caption" aria-live="polite"></div>
+    <div class="error" id="error" role="alert" hidden></div>
+  </section>
+  <section class="region" id="right" aria-label="Output of this step">
+    <div class="panels"></div>
+  </section>
+</main>
+<div id="art" aria-hidden="true"></div>
+<div id="fly" aria-hidden="true"></div>
+<aside id="egg" aria-live="polite" hidden></aside>
+<script>
+/* =====================================================================
+   DATASETS: each has small tables (so every step fits on screen) and
+   its own ordered list of editable example queries.
+   ===================================================================== */
+const DATASETS = [
+  {
+    id: 'uni', emoji: '🎓',
+    name: 'University (Lecture 4)',
+    fks: [{ child: 'Takes', col: 'sid', parent: 'Students', pcol: 'sid' }, { child: 'Takes', col: 'course', parent: 'Courses', pcol: 'course' }],
+    tables: {
+      Students: {
+        cols: ['sid', 'name', 'major', 'gpa'],
+        rows: [
+          [1, 'Anya', 'CS', 3.8], [2, 'Boris', 'CS', 3.2], [3, 'Carmen', 'Math', 3.9],
+          [4, 'Diego', 'Math', 3.5], [5, 'Elif', 'Math', 3.7], [6, 'Farid', 'Bio', 3.4],
+        ],
+      },
+      Takes: {
+        cols: ['sid', 'course'],
+        rows: [[1, 'CSC108'], [1, 'MAT136'], [2, 'MAT136'], [3, 'CSC108'], [4, 'CSC148'], [5, 'CSC108']],
+      },
+      Courses: {
+        cols: ['course', 'credits'],
+        rows: [['CSC108', 4], ['MAT136', 5], ['CSC148', 4], ['BIO120', 3]],
+      },
+      Instructors: {
+        cols: ['iid', 'name', 'dept'],
+        rows: [[1, 'Sharma', 'CS'], [2, 'Okafor', 'Math'], [3, 'Lee', 'CS'], [4, 'Brandt', 'Bio'], [5, 'Moreau', 'Math']],
+      },
+    },
+    eggs: [
+      {
+        when: x => x.has('Farid') && /LEFT\s+JOIN/i.test(x.sql),
+        lines: [['Farid', "I'm not NULL. I'm just between courses."]],
+      },
+    ],
+    presets: [
+      ['Lecture 4', 'Basic SELECT', `SELECT name, major\nFROM Students;`],
+      ['Lecture 4', 'SELECT + WHERE', `SELECT name, gpa\nFROM Students\nWHERE gpa > 3.5;`],
+      ['Lecture 4', 'Multiple conditions', `SELECT name\nFROM Students\nWHERE major = 'Math'\n  AND gpa >= 3.7;`],
+      ['Lecture 4', 'Students and Takes', `-- Which students are enrolled in CSC108?\nSELECT name\nFROM Takes, Students\nWHERE Takes.course = 'CSC108'\n  AND Takes.sid = Students.sid;`],
+      ['Lecture 4', 'Tuple variables s1, s2', `SELECT s1.name, s2.name\nFROM Students s1, Students s2\nWHERE s1.major = s2.major\n  AND s1.name < s2.name;`],
+      ['Lecture 4', 'Subquery in FROM', `SELECT course\nFROM Takes,\n  (SELECT sid\n   FROM Students\n   WHERE major = 'CS') CSStudents\nWHERE Takes.sid = CSStudents.sid;`],
+      ['Lecture 4', 'Scalar subquery', `SELECT course, credits\nFROM Courses\nWHERE credits =\n  (SELECT MAX(credits)\n   FROM Courses);`],
+      ['Lecture 4', 'DISTINCT', `SELECT DISTINCT major\nFROM Students;`],
+      ['Lecture 4', 'ORDER BY', `SELECT name\nFROM Instructors\nORDER BY name ASC;`],
+      ['Lecture 4', 'COUNT', `SELECT COUNT(*)\nFROM Takes\nWHERE course = 'CSC108';`],
+      ['Lecture 4', 'AVG', `SELECT AVG(gpa)\nFROM Students;`],
+      ['Lecture 4', 'COUNT(DISTINCT …)', `SELECT COUNT(DISTINCT course)\nFROM Takes;`],
+      ['Lecture 4', 'GROUP BY + aggregate', `SELECT major, AVG(gpa)\nFROM Students\nGROUP BY major;`],
+      ['Joins', 'JOIN … ON', `SELECT s.name, t.course\nFROM Students s\n  JOIN Takes t\n    ON s.sid = t.sid;`],
+      ['Joins', 'LEFT JOIN keeps Farid', `SELECT s.name, t.course\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid;`],
+      ['Joins', 'Who takes nothing?', `SELECT s.name\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid\nWHERE t.sid IS NULL;`],
+      ['Joins', 'COUNT after LEFT JOIN', `SELECT s.name, COUNT(t.course)\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid\nGROUP BY s.name;`],
+      ['Joins', 'RIGHT JOIN: untaken courses', `SELECT t.sid, c.course\nFROM Takes t\n  RIGHT JOIN Courses c\n    ON t.course = c.course;`],
+      ['Joins', 'Three tables', `SELECT s.name, c.course, c.credits\nFROM Students s\n  JOIN Takes t\n    ON s.sid = t.sid\n  JOIN Courses c\n    ON t.course = c.course;`],
+      ['DML', 'DELETE a student: CASCADE', `DELETE FROM Students\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { del: 'CASCADE' } } }],
+      ['DML', 'DELETE a student: SET NULL', `DELETE FROM Students\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { del: 'SET NULL' } } }],
+      ['DML', 'DELETE a student: RESTRICT', `DELETE FROM Students\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { del: 'RESTRICT' } } }],
+      ['DML', 'DELETE with nothing pointing at it', `DELETE FROM Students\nWHERE name = 'Farid';`, { rules: {} }],
+      ['DML', 'UPDATE a key: CASCADE', `UPDATE Students\nSET sid = 10\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { upd: 'CASCADE' } } }],
+      ['DML', 'UPDATE a key: RESTRICT', `UPDATE Students\nSET sid = 10\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { upd: 'RESTRICT' } } }],
+      ['DML', 'UPDATE a plain column', `UPDATE Students\nSET gpa = gpa + 0.1\nWHERE major = 'Math';`, { rules: {} }],
+      ['DML', 'Broken foreign key', `UPDATE Takes\nSET sid = 9\nWHERE course = 'CSC148';`, { rules: {} }],
+    ],
+  },
+  {
+    id: 'cafe', emoji: '☕',
+    name: 'Café',
+    fks: [{ child: 'Orders', col: 'item', parent: 'Menu', pcol: 'item' }, { child: 'Orders', col: 'customer', parent: 'Customers', pcol: 'customer' }],
+    tables: {
+      Menu: {
+        cols: ['item', 'category', 'price'],
+        rows: [
+          ['Matcha latte', 'drink', 5.5], ['Masala chai', 'drink', 4], ['Horchata', 'drink', 4.5],
+          ['Empanada', 'food', 3.5], ['Onigiri', 'food', 3], ['Pão de queijo', 'food', 3], ['Baklava', 'dessert', 4.5],
+        ],
+      },
+      Orders: {
+        cols: ['oid', 'customer', 'item', 'qty'],
+        rows: [
+          [1, 'Amara', 'Matcha latte', 2], [2, 'Kenji', 'Onigiri', 3], [3, 'Amara', 'Baklava', 1], [4, 'Lucía', 'Horchata', 1],
+          [5, 'Kenji', 'Matcha latte', 1], [6, 'Tariq', 'Empanada', 2], [7, 'Lucía', 'Empanada', 1],
+        ],
+      },
+      Customers: {
+        cols: ['customer', 'city'],
+        rows: [['Amara', 'Lagos'], ['Kenji', 'Osaka'], ['Lucía', 'Oaxaca'], ['Tariq', 'Amman'], ['Nino', 'Tbilisi']],
+      },
+    },
+    eggs: [
+      {
+        when: x => x.has('Pão de queijo') && /IS\s+NULL/i.test(x.sql),
+        lines: [['Pão de queijo', 'Nobody ordered me?? I am literally bread made of cheese.']],
+      },
+    ],
+    presets: [
+      ['Warm-up', 'Cheap eats', `SELECT item, price\nFROM Menu\nWHERE price < 4\nORDER BY price;`],
+      ['Warm-up', 'Menu by category', `SELECT category, COUNT(*), AVG(price)\nFROM Menu\nGROUP BY category;`],
+      ['Warm-up', 'Who has ordered?', `SELECT DISTINCT customer\nFROM Orders;`],
+      ['Warm-up', 'Priciest item', `SELECT item, price\nFROM Menu\nWHERE price =\n  (SELECT MAX(price)\n   FROM Menu);`],
+      ['Joins', 'Receipt lines', `SELECT o.customer, o.item,\n       o.qty * m.price AS total\nFROM Orders o\n  JOIN Menu m\n    ON o.item = m.item;`],
+      ['Joins', 'Never ordered', `SELECT m.item\nFROM Menu m\n  LEFT JOIN Orders o\n    ON m.item = o.item\nWHERE o.oid IS NULL;`],
+      ['Joins', 'Big spenders', `SELECT o.customer,\n       SUM(o.qty * m.price) AS spent\nFROM Orders o\n  JOIN Menu m\n    ON o.item = m.item\nGROUP BY o.customer\nORDER BY spent DESC;`],
+      ['Joins', 'RIGHT JOIN: every customer', `SELECT c.customer, o.item\nFROM Orders o\n  RIGHT JOIN Customers c\n    ON o.customer = c.customer;`],
+      ['Joins', 'Three tables', `SELECT c.city, m.category\nFROM Customers c\n  JOIN Orders o\n    ON c.customer = o.customer\n  JOIN Menu m\n    ON o.item = m.item;`],
+      ['DML', 'Take empanadas off the menu: CASCADE', `DELETE FROM Menu\nWHERE item = 'Empanada';`, { rules: { 'Orders.item': { del: 'CASCADE' } } }],
+      ['DML', 'Take empanadas off the menu: RESTRICT', `DELETE FROM Menu\nWHERE item = 'Empanada';`, { rules: { 'Orders.item': { del: 'RESTRICT' } } }],
+      ['DML', 'Rename an item: ON UPDATE CASCADE', `UPDATE Menu\nSET item = 'Iced matcha'\nWHERE item = 'Matcha latte';`, { rules: { 'Orders.item': { upd: 'CASCADE' } } }],
+    ],
+  },
+  {
+    id: 'shelter', emoji: '🐾',
+    name: 'Animal shelter',
+    fks: [{ child: 'Adoptions', col: 'pid', parent: 'Pets', pcol: 'pid' }, { child: 'Adoptions', col: 'aid', parent: 'Adopters', pcol: 'aid' }],
+    tables: {
+      Pets: {
+        cols: ['pid', 'name', 'species', 'age'],
+        rows: [
+          [1, 'Biscuit', 'dog', 3], [2, 'Mochi', 'cat', 1], [3, 'Nala', 'dog', 5], [4, 'Pickles', 'rabbit', 2],
+          [5, 'Zuzu', 'cat', 7], [6, 'Kiwi', 'parrot', 12], [7, 'Tofu', 'cat', 4],
+        ],
+      },
+      Adopters: {
+        cols: ['aid', 'name', 'city'],
+        rows: [[1, 'Priya', 'Toronto'], [2, 'Mateo', 'Montréal'], [3, 'Aiyana', 'Winnipeg'], [4, 'Oluwaseun', 'Halifax'], [5, 'Mei', 'Vancouver']],
+      },
+      Adoptions: {
+        cols: ['pid', 'aid', 'year'],
+        rows: [[1, 1, 2023], [2, 1, 2024], [3, 2, 2022], [5, 4, 2024], [6, 3, 2021]],
+      },
+    },
+    eggs: [
+      {
+        when: x => x.has('Pickles') && x.has('Tofu') && /IS\s+NULL/i.test(x.sql),
+        lines: [['Pickles', 'Adopt me. I come with my own carrot.'], ['Tofu', 'Adopt me instead. I come with attitude.']],
+      },
+    ],
+    presets: [
+      ['Warm-up', 'The cats', `SELECT name, age\nFROM Pets\nWHERE species = 'cat';`],
+      ['Warm-up', 'Youngest first', `SELECT name, species, age\nFROM Pets\nORDER BY age;`],
+      ['Warm-up', 'Species stats', `SELECT species, COUNT(*), AVG(age)\nFROM Pets\nGROUP BY species;`],
+      ['Warm-up', 'Oldest pet', `SELECT name, age\nFROM Pets\nWHERE age =\n  (SELECT MAX(age)\n   FROM Pets);`],
+      ['Joins', 'Who adopted whom (3 tables)', `SELECT a.name, p.name\nFROM Adopters a\n  JOIN Adoptions ad\n    ON a.aid = ad.aid\n  JOIN Pets p\n    ON ad.pid = p.pid;`],
+      ['Joins', 'Still waiting for a home', `SELECT p.name, p.species\nFROM Pets p\n  LEFT JOIN Adoptions ad\n    ON p.pid = ad.pid\nWHERE ad.pid IS NULL;`],
+      ['Joins', 'Pets per adopter', `SELECT a.name, COUNT(ad.pid)\nFROM Adopters a\n  LEFT JOIN Adoptions ad\n    ON a.aid = ad.aid\nGROUP BY a.name;`],
+      ['Joins', 'Oops: which name?', `-- Try it: this one has a mistake.\nSELECT name\nFROM Pets p\n  JOIN Adoptions ad\n    ON p.pid = ad.pid\n  JOIN Adopters a\n    ON ad.aid = a.aid;`],
+      ['DML', 'An adopter moves away: SET NULL', `DELETE FROM Adopters\nWHERE name = 'Priya';`, { rules: { 'Adoptions.aid': { del: 'SET NULL' } } }],
+    ],
+  },
+  {
+    id: 'space', emoji: '🚀',
+    name: 'Space missions',
+    fks: [{ child: 'Missions', col: 'planet', parent: 'Planets', pcol: 'planet' }],
+    tables: {
+      Planets: {
+        cols: ['planet', 'type', 'au'],
+        rows: [
+          ['Mercury', 'rocky', 0.39], ['Venus', 'rocky', 0.72], ['Earth', 'rocky', 1], ['Mars', 'rocky', 1.52],
+          ['Jupiter', 'gas giant', 5.2], ['Saturn', 'gas giant', 9.54], ['Uranus', 'ice giant', 19.2], ['Neptune', 'ice giant', 30.07],
+        ],
+      },
+      Missions: {
+        cols: ['mission', 'planet', 'agency', 'year'],
+        rows: [
+          ['Venera 7', 'Venus', 'USSR', 1970], ['Akatsuki', 'Venus', 'JAXA', 2010], ['BepiColombo', 'Mercury', 'ESA+JAXA', 2018],
+          ['Mangalyaan', 'Mars', 'ISRO', 2013], ['Hope', 'Mars', 'UAE', 2020], ['Tianwen-1', 'Mars', 'CNSA', 2020],
+          ['Juno', 'Jupiter', 'NASA', 2011],
+        ],
+      },
+    },
+    eggs: [
+      {
+        when: x => x.has('Earth') && !x.has('Mars'),
+        lines: [['Mission control', "No mission to Earth. We checked: we're already here."]],
+      },
+    ],
+    presets: [
+      ['Warm-up', 'Rocky planets', `SELECT planet, au\nFROM Planets\nWHERE type = 'rocky'\nORDER BY au DESC;`],
+      ['Warm-up', 'Planet types', `SELECT type, COUNT(*), MAX(au)\nFROM Planets\nGROUP BY type;`],
+      ['Warm-up', 'Destinations', `SELECT DISTINCT planet\nFROM Missions;`],
+      ['Warm-up', 'Latest launches', `SELECT mission, agency\nFROM Missions\nWHERE year =\n  (SELECT MAX(year)\n   FROM Missions);`],
+      ['Joins', 'Where did they go?', `SELECT m.mission, m.agency, p.type\nFROM Missions m\n  JOIN Planets p\n    ON m.planet = p.planet;`],
+      ['Joins', 'Same join, comma style', `SELECT m.mission, p.au\nFROM Missions m, Planets p\nWHERE m.planet = p.planet\n  AND p.au > 1;`],
+      ['Joins', 'No mission in this table', `SELECT p.planet\nFROM Planets p\n  LEFT JOIN Missions m\n    ON p.planet = m.planet\nWHERE m.mission IS NULL;`],
+      ['Joins', 'Missions per planet', `SELECT p.planet,\n       COUNT(m.mission) AS missions\nFROM Planets p\n  LEFT JOIN Missions m\n    ON p.planet = m.planet\nGROUP BY p.planet\nORDER BY missions DESC;`],
+    ],
+  },
+  {
+    id: 'games', emoji: '🎲',
+    name: 'Board game night',
+    fks: [{ child: 'Plays', col: 'pid', parent: 'Players', pcol: 'pid' }, { child: 'Plays', col: 'game', parent: 'Games', pcol: 'game' }],
+    tables: {
+      Players: {
+        cols: ['pid', 'name', 'country'],
+        rows: [[1, 'Zainab', 'Nigeria'], [2, 'Hiroshi', 'Japan'], [3, 'Ingrid', 'Norway'], [4, 'Camila', 'Chile'], [5, 'Arjun', 'India'], [6, 'Léa', 'France']],
+      },
+      Games: {
+        cols: ['game', 'origin', 'minutes'],
+        rows: [['Go', 'China', 60], ['Mancala', 'Africa', 15], ['Chess', 'India', 45], ['Carrom', 'India', 20], ['Hanafuda', 'Japan', 25], ['Senet', 'Egypt', 30]],
+      },
+      Plays: {
+        cols: ['pid', 'game', 'wins'],
+        rows: [[1, 'Mancala', 3], [1, 'Go', 1], [2, 'Go', 4], [2, 'Hanafuda', 2], [3, 'Chess', 2], [4, 'Carrom', 3], [5, 'Carrom', 1], [5, 'Chess', 5]],
+      },
+    },
+    eggs: [
+      {
+        when: x => x.has('Senet') && x.hasNull,
+        lines: [['Senet', "Five thousand years old and still waiting for someone to play me. It's fine. I'm fine."]],
+      },
+    ],
+    presets: [
+      ['Warm-up', 'Quick games', `SELECT game, minutes\nFROM Games\nWHERE minutes <= 25\nORDER BY minutes;`],
+      ['Warm-up', 'Games by origin', `SELECT origin, COUNT(*)\nFROM Games\nGROUP BY origin;`],
+      ['Warm-up', 'How many games get played?', `SELECT COUNT(DISTINCT game)\nFROM Plays;`],
+      ['Joins', 'Who plays what', `SELECT pl.name, p.game, p.wins\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid;`],
+      ['Joins', 'Leaderboard', `SELECT pl.name, SUM(p.wins) AS wins\nFROM Players pl\n  LEFT JOIN Plays p\n    ON pl.pid = p.pid\nGROUP BY pl.name\nORDER BY wins DESC;`],
+      ['Joins', 'RIGHT JOIN: unplayed games', `SELECT p.pid, g.game\nFROM Plays p\n  RIGHT JOIN Games g\n    ON p.game = g.game;`],
+      ['Joins', 'Long games (3 tables)', `SELECT pl.name, g.game, g.origin\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid\n  JOIN Games g\n    ON p.game = g.game\nWHERE g.minutes >= 45;`],
+      ['Joins', 'Record holder', `SELECT pl.name, p.game, p.wins\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid\nWHERE p.wins =\n  (SELECT MAX(wins)\n   FROM Plays);`],
+    ],
+  },
+  {
+    id: 'starwars', emoji: '🌌',
+    name: 'Star Wars',
+    fks: [{ child: 'Characters', col: 'homeworld', parent: 'Planets', pcol: 'planet' }, { child: 'Flies', col: 'cid', parent: 'Characters', pcol: 'cid' }, { child: 'Flies', col: 'ship', parent: 'Ships', pcol: 'ship' }],
+    tables: {
+      Characters: {
+        cols: ['cid', 'name', 'species', 'homeworld', 'side'],
+        rows: [
+          [1, 'Luke Skywalker', 'Human', 'Tatooine', 'light'], [2, 'Leia Organa', 'Human', 'Alderaan', 'light'],
+          [3, 'Han Solo', 'Human', 'Corellia', 'light'], [4, 'Chewbacca', 'Wookiee', 'Kashyyyk', 'light'],
+          [5, 'Darth Vader', 'Human', 'Tatooine', 'dark'], [6, 'Yoda', null, null, 'light'],
+          [7, 'Rey', 'Human', 'Jakku', 'light'], [8, 'R2-D2', 'Droid', 'Naboo', 'light'], [9, 'Palpatine', 'Human', 'Naboo', 'dark'],
+          [10, 'C-3PO', 'Droid', 'Tatooine', 'light'],
+        ],
+      },
+      Planets: {
+        cols: ['planet', 'climate'],
+        rows: [['Tatooine', 'arid'], ['Alderaan', 'temperate'], ['Corellia', 'temperate'], ['Kashyyyk', 'tropical'],
+          ['Jakku', 'arid'], ['Naboo', 'temperate'], ['Hoth', 'frozen'], ['Dagobah', 'murky']],
+      },
+      Flies: {
+        cols: ['cid', 'ship'],
+        rows: [[1, 'X-wing'], [1, 'Snowspeeder'], [3, 'Millennium Falcon'], [4, 'Millennium Falcon'], [5, 'TIE Advanced x1'], [7, 'Millennium Falcon']],
+      },
+      Ships: {
+        cols: ['ship', 'class'],
+        rows: [['X-wing', 'starfighter'], ['Millennium Falcon', 'light freighter'], ['TIE Advanced x1', 'starfighter'],
+          ['Snowspeeder', 'airspeeder'], ['Death Star', 'battle station']],
+      },
+    },
+    eggs: [
+      {
+        when: x => x.has('R2-D2') || x.has('C-3PO') || /droid/i.test(x.sql),
+        lines: [
+          ['R2-D2', "BEEP BOOP BEEP, you're an idiot C-3PO. I'm sorry you can't understand my simple database explanation, do you want me to have an arm installed so I can hold your hand and walk you through it?"],
+          ['C-3PO', "IN ALL MY YEARS!?! I can't believe you would talk to me like that. I'm so offended. My explanation is CLEARLY better. Tip top. Top notch. The best of the best."],
+        ],
+      },
+      {
+        when: x => /DELETE/i.test(x.sql) && /Alderaan/.test(x.sql),
+        lines: [['Leia Organa', 'Excuse me. That was my planet. And your database just set my homeworld to NULL?!']],
+      },
+      {
+        when: x => x.has('Yoda'),
+        lines: [['Yoda', 'Unknown, my homeworld is. NULL, it stays. Equal to NULL, nothing is. Use IS NULL, you must.']],
+      },
+    ],
+    presets: [
+      ['Warm-up', 'The dark side', `SELECT name, homeworld\nFROM Characters\nWHERE side = 'dark';`],
+      ['Warm-up', 'Homeworld unknown', `SELECT name\nFROM Characters\nWHERE homeworld IS NULL;`],
+      ['Warm-up', 'Species count', `SELECT species, COUNT(*)\nFROM Characters\nGROUP BY species\nORDER BY COUNT(*) DESC;`],
+      ['Joins', 'Raised in the desert', `SELECT c.name, p.planet\nFROM Characters c\n  JOIN Planets p\n    ON c.homeworld = p.planet\nWHERE p.climate = 'arid';`],
+      ['Joins', 'Planets nobody is from', `SELECT p.planet\nFROM Planets p\n  LEFT JOIN Characters c\n    ON p.planet = c.homeworld\nWHERE c.cid IS NULL;`],
+      ['Joins', 'Who flies the Falcon?', `SELECT c.name\nFROM Characters c\n  JOIN Flies f\n    ON c.cid = f.cid\nWHERE f.ship = 'Millennium Falcon';`],
+      ['Joins', 'Pilots and ships (3 tables)', `SELECT c.name, s.ship, s.class\nFROM Characters c\n  JOIN Flies f\n    ON c.cid = f.cid\n  JOIN Ships s\n    ON f.ship = s.ship;`],
+      ['Joins', 'RIGHT JOIN: ships with no pilot', `SELECT f.cid, s.ship\nFROM Flies f\n  RIGHT JOIN Ships s\n    ON f.ship = s.ship;`],
+      ['Joins', 'Same homeworld (c1, c2)', `SELECT c1.name, c2.name\nFROM Characters c1, Characters c2\nWHERE c1.homeworld = c2.homeworld\n  AND c1.name < c2.name;`],
+      ['DML', 'Destroy Alderaan: SET NULL', `DELETE FROM Planets\nWHERE planet = 'Alderaan';`, { rules: { 'Characters.homeworld': { del: 'SET NULL' } } }],
+      ['DML', 'Tatooine: CASCADE chain', `DELETE FROM Planets\nWHERE planet = 'Tatooine';`, { rules: { 'Characters.homeworld': { del: 'CASCADE' }, 'Flies.cid': { del: 'CASCADE' } } }],
+      ['DML', 'Mixed rules: CASCADE then RESTRICT', `DELETE FROM Planets\nWHERE planet = 'Tatooine';`, { rules: { 'Characters.homeworld': { del: 'CASCADE' }, 'Flies.cid': { del: 'RESTRICT' } } }],
+      ['DML', 'Rename the Falcon: ON UPDATE CASCADE', `UPDATE Ships\nSET ship = 'The Falcon'\nWHERE ship = 'Millennium Falcon';`, { rules: { 'Flies.ship': { upd: 'CASCADE' } } }],
+    ],
+  },
+  {
+    id: 'pokemon', emoji: '⚡',
+    name: 'Pokémon',
+    fks: [{ child: 'Pokemon', col: 'type', parent: 'Types', pcol: 'type' }],
+    tables: {
+      Pokemon: {
+        cols: ['dex', 'name', 'type', 'hp'],
+        rows: [
+          [1, 'Bulbasaur', 'Grass', 45], [4, 'Charmander', 'Fire', 39], [7, 'Squirtle', 'Water', 44], [25, 'Pikachu', 'Electric', 35],
+          [39, 'Jigglypuff', 'Normal', 115], [94, 'Gengar', 'Ghost', 60], [133, 'Eevee', 'Normal', 55], [143, 'Snorlax', 'Normal', 160],
+        ],
+      },
+      Types: {
+        cols: ['type', 'beats'],
+        rows: [['Grass', 'Water'], ['Fire', 'Grass'], ['Water', 'Fire'], ['Electric', 'Water'], ['Ghost', 'Ghost'], ['Normal', null]],
+      },
+    },
+    eggs: [
+      {
+        when: x => x.has('Snorlax') && x.has('Pikachu'),
+        lines: [['Pikachu', 'Pika pika!'], ['Snorlax', '…zzz… wake me up when the query finishes …zzz…']],
+      },
+      {
+        when: x => x.has('Gengar') && /beats/i.test(x.sql),
+        lines: [['Gengar', 'Ghost beats Ghost. Yes, I beat myself. Joining a table to itself is weird like that.']],
+      },
+    ],
+    presets: [
+      ['Warm-up', 'Tanks', `SELECT name, hp\nFROM Pokemon\nWHERE hp >= 60\nORDER BY hp DESC;`],
+      ['Warm-up', 'Types in the team', `SELECT DISTINCT type\nFROM Pokemon;`],
+      ['Warm-up', 'HP by type', `SELECT type, COUNT(*), AVG(hp)\nFROM Pokemon\nGROUP BY type;`],
+      ['Warm-up', 'Most HP', `SELECT name, hp\nFROM Pokemon\nWHERE hp =\n  (SELECT MAX(hp)\n   FROM Pokemon);`],
+      ['Joins', 'Who beats whom? (3 tables)', `SELECT a.name, b.name\nFROM Pokemon a\n  JOIN Types t\n    ON a.type = t.type\n  JOIN Pokemon b\n    ON t.beats = b.type;`],
+      ['Joins', 'Nobody beats them', `SELECT p.name, p.type\nFROM Pokemon p\n  LEFT JOIN Types t\n    ON p.type = t.beats\nWHERE t.type IS NULL;`],
+      ['Joins', 'Types that beat nothing', `SELECT type\nFROM Types\nWHERE beats IS NULL;`],
+    ],
+  },
+  {
+    id: 'ghibli', emoji: '🍃',
+    name: 'Studio Ghibli',
+    fks: [{ child: 'Awards', col: 'title', parent: 'Films', pcol: 'title' }],
+    tables: {
+      Films: {
+        cols: ['title', 'year', 'director', 'minutes'],
+        rows: [
+          ['Castle in the Sky', 1986, 'Hayao Miyazaki', 124], ['My Neighbor Totoro', 1988, 'Hayao Miyazaki', 86],
+          ['Grave of the Fireflies', 1988, 'Isao Takahata', 89], ["Kiki's Delivery Service", 1989, 'Hayao Miyazaki', 103],
+          ['Princess Mononoke', 1997, 'Hayao Miyazaki', 134], ['Spirited Away', 2001, 'Hayao Miyazaki', 125],
+          ['The Tale of the Princess Kaguya', 2013, 'Isao Takahata', 137], ['The Boy and the Heron', 2023, 'Hayao Miyazaki', 124],
+        ],
+      },
+      Awards: {
+        cols: ['title', 'award', 'year'],
+        rows: [
+          ['Princess Mononoke', 'Japan Academy Prize', 1998], ['Spirited Away', 'Golden Bear', 2002],
+          ['Spirited Away', 'Academy Award', 2003], ['The Boy and the Heron', 'Golden Globe', 2024],
+          ['The Boy and the Heron', 'Academy Award', 2024],
+        ],
+      },
+    },
+    presets: [
+      ['Warm-up', 'The 1980s', `SELECT title, year\nFROM Films\nWHERE year < 1990\nORDER BY year;`],
+      ['Warm-up', 'Films per director', `SELECT director, COUNT(*), AVG(minutes)\nFROM Films\nGROUP BY director;`],
+      ['Warm-up', 'The longest film', `SELECT title, minutes\nFROM Films\nWHERE minutes =\n  (SELECT MAX(minutes)\n   FROM Films);`],
+      ['Joins', 'Award winners', `SELECT f.title, a.award\nFROM Films f\n  JOIN Awards a\n    ON f.title = a.title;`],
+      ['Joins', 'No award in this table', `SELECT f.title\nFROM Films f\n  LEFT JOIN Awards a\n    ON f.title = a.title\nWHERE a.award IS NULL;`],
+      ['Joins', 'Awards per film', `SELECT f.title, COUNT(a.award)\nFROM Films f\n  LEFT JOIN Awards a\n    ON f.title = a.title\nGROUP BY f.title;`],
+      ['Joins', 'Oops: ambiguous columns', `-- Try it: this one has a mistake.\nSELECT title, year\nFROM Films f\n  JOIN Awards a\n    ON f.title = a.title;`],
+    ],
+  },
+];
+
+/* =====================================================================
+   ART: small original illustrations, one per dataset theme.
+   "currentColor" follows the theme's ink so outlines work in light and dark.
+   ===================================================================== */
+const ART = {
+  uni: `<svg viewBox="0 0 240 160" role="img" aria-label="Books and a graduation cap">
+    <rect x="42" y="120" width="150" height="20" rx="3" fill="#3e5a82"/>
+    <rect x="52" y="100" width="132" height="20" rx="3" fill="#c0562b"/>
+    <rect x="46" y="80" width="142" height="20" rx="3" fill="#2f7f5a"/>
+    <path d="M58 90h118M62 110h110M54 130h126" stroke="#fff" stroke-opacity=".4" stroke-width="2"/>
+    <path d="M116 38 L176 57 L116 76 L56 57 Z" fill="#1d2a40" stroke="currentColor" stroke-opacity=".25"/>
+    <path d="M94 64 v14 q22 9 44 0 v-14" fill="#1d2a40"/>
+    <path d="M176 57 v24" stroke="#e0a526" stroke-width="3"/><circle cx="176" cy="84" r="4.5" fill="#e0a526"/>
+  </svg>`,
+  cafe: `<svg viewBox="0 0 240 160" role="img" aria-label="A cup of coffee">
+    <ellipse cx="118" cy="140" rx="74" ry="11" fill="#d9c3a8" stroke="currentColor" stroke-opacity=".35" stroke-width="2"/>
+    <path d="M66 80 h100 v26 c0 22 -22 34 -50 34 s-50 -12 -50 -34 Z" fill="#fffaf2" stroke="currentColor" stroke-width="4"/>
+    <path d="M166 88 c22 0 22 30 -4 30" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+    <ellipse cx="116" cy="80" rx="50" ry="8" fill="#6b3f26" stroke="currentColor" stroke-width="4"/>
+    <g fill="none" stroke="#b19a88" stroke-width="4" stroke-linecap="round">
+      <path d="M96 64 q-9 -11 0 -22 t0 -22"/><path d="M118 62 q-9 -11 0 -22 t0 -22"/><path d="M140 64 q-9 -11 0 -22 t0 -22"/>
+    </g>
+    <path d="M186 132 q10 -22 32 -8 q-6 18 -32 8 Z" fill="#e0a052" stroke="currentColor" stroke-opacity=".5" stroke-width="2"/>
+  </svg>`,
+  shelter: `<svg viewBox="0 0 240 160" role="img" aria-label="A dog and a cat sitting together">
+    <ellipse cx="80" cy="124" rx="34" ry="28" fill="#c98b4e"/>
+    <circle cx="80" cy="78" r="25" fill="#c98b4e"/>
+    <ellipse cx="58" cy="82" rx="8" ry="17" fill="#8a5a2f" transform="rotate(12 58 82)"/>
+    <ellipse cx="102" cy="82" rx="8" ry="17" fill="#8a5a2f" transform="rotate(-12 102 82)"/>
+    <ellipse cx="80" cy="90" rx="12" ry="9" fill="#e9c49a"/>
+    <circle cx="71" cy="74" r="3.2" fill="#2a1d12"/><circle cx="89" cy="74" r="3.2" fill="#2a1d12"/>
+    <ellipse cx="80" cy="86" rx="5" ry="3.6" fill="#2a1d12"/>
+    <path d="M110 138 q16 -4 18 -22" stroke="#c98b4e" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M186 130 q30 -4 18 -38" stroke="#7d8894" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <ellipse cx="164" cy="126" rx="26" ry="24" fill="#7d8894"/>
+    <circle cx="164" cy="90" r="21" fill="#7d8894"/>
+    <path d="M147 79 L148 58 L161 72 Z M181 79 L180 58 L167 72 Z" fill="#7d8894"/>
+    <circle cx="157" cy="88" r="3" fill="#1d2230"/><circle cx="171" cy="88" r="3" fill="#1d2230"/>
+    <path d="M160 96 l4 3 l4 -3" stroke="#1d2230" fill="none" stroke-width="2" stroke-linecap="round"/>
+    <path d="M150 97 h-12 M150 100 l-11 4 M178 97 h12 M178 100 l11 4" stroke="#1d2230" stroke-width="1.4" stroke-opacity=".6"/>
+  </svg>`,
+  space: `<svg viewBox="0 0 240 160" role="img" aria-label="A rocket passing a ringed planet">
+    <g fill="currentColor" opacity=".6"><circle cx="20" cy="20" r="1.6"/><circle cx="130" cy="14" r="1.2"/><circle cx="220" cy="40" r="1.6"/><circle cx="200" cy="140" r="1.2"/><circle cx="110" cy="150" r="1.4"/></g>
+    <circle cx="72" cy="94" r="34" fill="#e0a052"/>
+    <path d="M44 84 q28 8 56 -4" stroke="#c77f35" stroke-width="5" fill="none" opacity=".6"/>
+    <ellipse cx="72" cy="96" rx="60" ry="12" fill="none" stroke="#f3d9a4" stroke-width="5" transform="rotate(-14 72 96)"/>
+    <g transform="translate(172 78) rotate(38)">
+      <path d="M0 -52 C 17 -32 17 10 13 30 H -13 C -17 10 -17 -32 0 -52 Z" fill="#e9eef8" stroke="currentColor" stroke-width="3"/>
+      <circle cx="0" cy="-12" r="8" fill="#5b8def" stroke="currentColor" stroke-width="3"/>
+      <path d="M-13 12 L-26 34 L-13 30 Z M13 12 L26 34 L13 30 Z" fill="#d7261e" stroke="currentColor" stroke-width="2"/>
+      <path d="M-8 32 Q0 62 8 32 Z" fill="#ffb13d"/>
+    </g>
+  </svg>`,
+  games: `<svg viewBox="0 0 240 160" role="img" aria-label="Two dice and a game piece">
+    <g transform="rotate(-12 82 100)">
+      <rect x="52" y="70" width="60" height="60" rx="11" fill="#fdf8ec" stroke="#2a1d12" stroke-width="3"/>
+      <g fill="#2a1d12"><circle cx="68" cy="86" r="5"/><circle cx="96" cy="86" r="5"/><circle cx="82" cy="100" r="5"/><circle cx="68" cy="114" r="5"/><circle cx="96" cy="114" r="5"/></g>
+    </g>
+    <g transform="rotate(14 150 112)">
+      <rect x="124" y="86" width="54" height="54" rx="10" fill="#c8342b" stroke="#2a1d12" stroke-width="3"/>
+      <g fill="#fff"><circle cx="138" cy="100" r="4.5"/><circle cx="151" cy="113" r="4.5"/><circle cx="164" cy="126" r="4.5"/></g>
+    </g>
+    <circle cx="206" cy="66" r="13" fill="#2f6fbf" stroke="#2a1d12" stroke-width="3"/>
+    <path d="M196 80 h20 l9 50 h-38 Z" fill="#2f6fbf" stroke="#2a1d12" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="184" y="128" width="44" height="8" rx="3" fill="#2f6fbf" stroke="#2a1d12" stroke-width="3"/>
+  </svg>`,
+  starwars: `<svg viewBox="0 0 240 160" role="img" aria-label="A spiral galaxy and distant planets">
+    <defs><radialGradient id="gx" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff6d0"/><stop offset=".35" stop-color="#f5b93e" stop-opacity=".7"/><stop offset="1" stop-color="#f5b93e" stop-opacity="0"/></radialGradient></defs>
+    <g transform="translate(118 78) rotate(-18)">
+      <ellipse rx="96" ry="30" fill="url(#gx)"/>
+      <g fill="none" stroke="#f5d78a" stroke-width="3" stroke-linecap="round" opacity=".8">
+        <path d="M0 0 C 30 -18 62 -8 80 8"/><path d="M0 0 C -30 18 -62 8 -80 -8"/>
+        <path d="M0 0 C 18 12 44 18 60 12" opacity=".6"/><path d="M0 0 C -18 -12 -44 -18 -60 -12" opacity=".6"/>
+      </g>
+      <circle r="9" fill="#fffbe6"/>
+    </g>
+    <circle cx="32" cy="128" r="14" fill="#c86a17" opacity=".9"/>
+    <circle cx="214" cy="30" r="8" fill="#9fb0d6"/>
+    <g fill="currentColor" opacity=".7"><circle cx="12" cy="30" r="1.4"/><circle cx="70" cy="150" r="1.2"/><circle cx="200" cy="130" r="1.6"/><circle cx="160" cy="14" r="1.2"/><circle cx="230" cy="96" r="1.2"/></g>
+  </svg>`,
+  pokemon: `<svg viewBox="0 0 240 160" role="img" aria-label="Leaf, flame, water drop and lightning symbols">
+    <g stroke="currentColor" stroke-width="3">
+      <circle cx="48" cy="80" r="24" fill="#4caf50"/><circle cx="96" cy="80" r="24" fill="#e8552d"/>
+      <circle cx="144" cy="80" r="24" fill="#3b82f6"/><circle cx="192" cy="80" r="24" fill="#f5c518"/>
+    </g>
+    <g fill="#fff">
+      <path transform="translate(48 80)" d="M-11 9 C -11 -8 4 -13 13 -13 C 13 1 6 13 -11 9 Z M-11 9 L 4 -4" stroke="#fff" stroke-width="2"/>
+      <path transform="translate(96 80)" d="M0 -14 C 9 -4 11 3 9 8 C 7 13 -7 13 -9 8 C -11 3 -7 -2 -3 -6 C -3 -2 0 0 2 -2 C 2 -6 1 -10 0 -14 Z"/>
+      <path transform="translate(144 80)" d="M0 -14 C 6 -5 11 1 11 6 A 11 11 0 0 1 -11 6 C -11 1 -6 -5 0 -14 Z"/>
+      <path transform="translate(192 80)" d="M4 -15 L-9 3 H0 L-4 15 L9 -3 H0 Z" fill="#1d2230"/>
+    </g>
+  </svg>`,
+  ghibli: `<svg viewBox="0 0 240 160" role="img" aria-label="Rolling hills, a big tree and clouds">
+    <g fill="#ffffff" opacity=".9"><ellipse cx="60" cy="34" rx="30" ry="12"/><ellipse cx="80" cy="28" rx="20" ry="14"/><ellipse cx="170" cy="22" rx="24" ry="9"/></g>
+    <path d="M0 128 Q60 92 120 118 T240 106 V160 H0 Z" fill="#8fc07a"/>
+    <path d="M0 146 Q80 118 160 142 T240 136 V160 H0 Z" fill="#5d8f4f"/>
+    <rect x="167" y="84" width="10" height="34" rx="3" fill="#6b4a2f"/>
+    <g fill="#3f7a45"><circle cx="160" cy="74" r="20"/><circle cx="184" cy="72" r="22"/><circle cx="172" cy="56" r="20"/></g>
+    <g fill="#e8e27a"><circle cx="40" cy="138" r="2.5"/><circle cx="54" cy="144" r="2.5"/><circle cx="96" cy="140" r="2.5"/></g>
+  </svg>`,
+};
+
+/* =====================================================================
+   ENGINE: lecture data, lexer, parser, evaluator, and trace builder.
+   The trace is a list of full "snapshots" (steps). The UI only renders
+   snapshots; it never evaluates SQL itself.
+   ===================================================================== */
+
+let DB = null, FKS = [];
+function setDataset(ds) { DB = ds.tables; FKS = ds.fks || []; }
+
+class SqlError extends Error {
+  constructor(msg, clause, s, e) { super(msg); this.clause = clause || null; this.s = s; this.e = e; }
+}
+
+/* ---------------- Lexer ---------------- */
+const KW = new Set(['SELECT', 'DISTINCT', 'ALL', 'FROM', 'WHERE', 'GROUP', 'BY', 'ORDER', 'ASC', 'DESC',
+  'AND', 'OR', 'NOT', 'AS', 'HAVING', 'NULL', 'IS', 'IN', 'LIKE', 'JOIN', 'INNER', 'LEFT', 'RIGHT',
+  'OUTER', 'ON', 'LIMIT', 'UNION', 'INTERSECT', 'EXCEPT', 'BETWEEN', 'EXISTS', 'CROSS', 'NATURAL',
+  'OFFSET', 'CASE', 'WITH', 'TRUE', 'FALSE', 'FULL', 'USING', 'DELETE', 'UPDATE', 'SET', 'INSERT', 'INTO', 'VALUES']);
+const AGG = new Set(['COUNT', 'AVG', 'SUM', 'MIN', 'MAX']);
+
+function tokenize(src, lenient) {
+  const toks = [];
+  let i = 0;
+  const bad = (msg, s, e) => {
+    if (lenient) { toks.push({ t: 'bad', s, e }); i = e; return; }
+    throw new SqlError(msg, null, s, e);
+  };
+  while (i < src.length) {
+    const c = src[i];
+    if (/\s/.test(c)) { i++; continue; }
+    const s = i;
+    if (c === '-' && src[i + 1] === '-') {
+      while (i < src.length && src[i] !== '\n') i++;
+      if (lenient) toks.push({ t: 'comment', s, e: i });
+      continue;
+    }
+    if (/[A-Za-z_]/.test(c)) {
+      while (i < src.length && /[A-Za-z0-9_]/.test(src[i])) i++;
+      const v = src.slice(s, i), up = v.toUpperCase();
+      toks.push({ t: KW.has(up) ? 'kw' : 'id', v, up, s, e: i });
+      continue;
+    }
+    if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(src[i + 1] || ''))) {
+      while (i < src.length && /[0-9]/.test(src[i])) i++;
+      if (src[i] === '.' && /[0-9]/.test(src[i + 1] || '')) { i++; while (i < src.length && /[0-9]/.test(src[i])) i++; }
+      toks.push({ t: 'num', v: parseFloat(src.slice(s, i)), s, e: i });
+      continue;
+    }
+    if (c === "'") {
+      i++;
+      let v = '', closed = false;
+      while (i < src.length) {
+        if (src[i] === "'") { if (src[i + 1] === "'") { v += "'"; i += 2; continue; } i++; closed = true; break; }
+        v += src[i++];
+      }
+      if (!closed) { bad("This text value is missing its closing quote '", s, src.length); continue; }
+      toks.push({ t: 'str', v, s, e: i });
+      continue;
+    }
+    if (c === '"') {
+      let j = i + 1; while (j < src.length && src[j] !== '"') j++;
+      const inner = src.slice(i + 1, j);
+      bad(`Text values use single quotes: '${inner}'. (Double quotes are for names, not values.)`, s, Math.min(j + 1, src.length));
+      continue;
+    }
+    const two = src.slice(i, i + 2);
+    if (['<=', '>=', '<>', '!='].includes(two)) { toks.push({ t: 'op', v: two === '!=' ? '<>' : two, s, e: i + 2 }); i += 2; continue; }
+    if ('=<>+-*/'.includes(c)) { toks.push({ t: 'op', v: c, s, e: i + 1 }); i++; continue; }
+    if ('(),.;'.includes(c)) { toks.push({ t: 'p', v: c, s, e: i + 1 }); i++; continue; }
+    bad(`Unexpected character "${c}"`, s, s + 1);
+  }
+  toks.push({ t: 'eof', s: src.length, e: src.length });
+  return toks;
+}
+
+/* ---------------- Parser ---------------- */
+function parse(src) {
+  const toks = tokenize(src, false);
+  let p = 0, clause = 'SELECT', depth = 0;
+  const peek = (k = 0) => toks[Math.min(p + k, toks.length - 1)];
+  const isKw = (w, k = 0) => { const t = peek(k); return t.t === 'kw' && t.up === w; };
+  const isP = (v, k = 0) => { const t = peek(k); return t.t === 'p' && t.v === v; };
+  const isOp = (v, k = 0) => { const t = peek(k); return t.t === 'op' && t.v === v; };
+  const next = () => toks[p++];
+  const desc = t => (t.t === 'eof' ? 'the end of the query' : `"${src.slice(t.s, t.e)}"`);
+  const err = (msg, t = peek()) => { throw new SqlError(msg, clause, t.s, t.e); };
+  const expectKw = w => { if (!isKw(w)) err(`Expected ${w} but found ${desc(peek())}`); return next(); };
+  const expectP = v => { if (!isP(v)) err(`Expected "${v}" but found ${desc(peek())}`); return next(); };
+  const last = () => toks[p - 1];
+
+  if (toks.length === 1) throw new SqlError('Type a query first (start with SELECT).', null, 0, 0);
+
+  function parseQuery() {
+    const q = { depth, spans: {}, items: [], selectItems: [], star: false, distinct: false, where: null, groupBy: [], orderBy: [] };
+    clause = 'SELECT';
+    if (!isKw('SELECT')) err(depth ? 'A subquery must start with SELECT' : 'A statement must start with SELECT, UPDATE or DELETE');
+    const selTok = next();
+    q.s = selTok.s;
+    if (isKw('DISTINCT')) { const d = next(); q.distinct = true; q.spans.distinct = [d.s, d.e]; } else if (isKw('ALL')) next();
+    if (isOp('*')) { const t = next(); q.star = true; q.starSpan = [t.s, t.e]; }
+    else {
+      for (;;) {
+        if (isKw('FROM')) err('The SELECT list is empty or ends with a comma');
+        const ex = parseExpr();
+        let alias = null;
+        if (isKw('AS')) { next(); if (peek().t !== 'id') err('Expected a name after AS'); alias = next().v; }
+        else if (peek().t === 'id') alias = next().v;
+        q.selectItems.push({ expr: ex, alias });
+        if (isP(',')) { next(); continue; }
+        break;
+      }
+    }
+    q.spans.select = [selTok.s, last().e];
+    clause = 'FROM';
+    if (!isKw('FROM')) err(peek().t === 'eof' ? 'The query needs a FROM clause' : `Expected FROM but found ${desc(peek())}`);
+    const fromTok = next();
+    q.items.push(parseFromItem());
+    for (;;) {
+      if (isP(',')) { const c = next(); const it = parseFromItem(); it.join = { kind: 'COMMA', label: ',', s: c.s, span: [c.s, it.e] }; q.items.push(it); continue; }
+      const jk = parseJoinKw();
+      if (!jk) break;
+      const it = parseFromItem();
+      it.join = jk;
+      if (jk.kind === 'CROSS') jk.span = [jk.s, it.e];
+      else {
+        if (isKw('USING')) err('JOIN … USING is not supported here. Write ON with the matching columns, e.g. ON a.sid = b.sid');
+        if (!isKw('ON')) err(`${jk.label} needs a condition: ${jk.label} ${it.alias || it.table} ON …`);
+        next();
+        clause = 'ON';
+        if (peek().t === 'eof' || isKw('WHERE') || isKw('JOIN')) err('ON needs a condition');
+        jk.on = parseExpr();
+        jk.onSpan = [jk.on.s, jk.on.e];
+        jk.span = [jk.s, last().e];
+        clause = 'FROM';
+      }
+      q.items.push(it);
+    }
+    if (isKw('ON')) err('ON must come right after JOIN table-name');
+    q.spans.from = [fromTok.s, last().e];
+    if (isKw('WHERE')) {
+      clause = 'WHERE';
+      const w = next();
+      if (isKw('GROUP') || isKw('ORDER') || peek().t === 'eof' || isP(')') || isP(';')) err('WHERE needs a condition');
+      q.where = parseExpr();
+      q.spans.where = [w.s, last().e];
+    }
+    if (isKw('GROUP')) {
+      clause = 'GROUP BY';
+      const g = next(); expectKw('BY');
+      for (;;) { q.groupBy.push(parseExpr()); if (isP(',')) { next(); continue; } break; }
+      q.spans.group = [g.s, last().e];
+    }
+    if (isKw('HAVING')) { clause = 'HAVING'; err('HAVING is not supported in this tool yet (it comes in a later lecture).'); }
+    if (isKw('ORDER')) {
+      clause = 'ORDER BY';
+      const o = next(); expectKw('BY');
+      for (;;) {
+        const ex = parseExpr();
+        let dir = 'ASC';
+        if (isKw('ASC')) next(); else if (isKw('DESC')) { next(); dir = 'DESC'; }
+        q.orderBy.push({ expr: ex, dir });
+        if (isP(',')) { next(); continue; }
+        break;
+      }
+      q.spans.order = [o.s, last().e];
+    }
+    for (const w of ['LIMIT', 'OFFSET', 'UNION', 'INTERSECT', 'EXCEPT'])
+      if (isKw(w)) err(`${w} is not supported in this tool.`);
+    q.e = last().e;
+    return q;
+  }
+
+  function parseSub() {
+    const savedClause = clause;
+    depth++;
+    const q = parseQuery();
+    depth--;
+    clause = savedClause;
+    return q;
+  }
+
+  function parseJoinKw() {
+    const t = peek();
+    let kind = null;
+    if (isKw('NATURAL')) err('NATURAL JOIN is not supported here. Write JOIN … ON with the matching columns.');
+    if (isKw('JOIN')) kind = 'INNER';
+    else if (isKw('INNER')) { next(); kind = 'INNER'; }
+    else if (isKw('LEFT') || isKw('RIGHT') || isKw('FULL')) { kind = next().up; if (isKw('OUTER')) next(); }
+    else if (isKw('CROSS')) { next(); kind = 'CROSS'; }
+    else return null;
+    if (!isKw('JOIN')) err(`Expected JOIN after ${kind}`);
+    next();
+    return { kind, label: kind === 'INNER' ? 'JOIN' : `${kind} JOIN`, s: t.s };
+  }
+
+  function parseFromItem() {
+    const t = peek();
+    if (isP('(')) {
+      const open = next();
+      if (!isKw('SELECT')) err('Expected a subquery (SELECT …) inside the parentheses');
+      const sub = parseSub();
+      const close = expectP(')');
+      if (isKw('AS')) next();
+      if (peek().t !== 'id') err('A subquery in FROM needs a name (a tuple variable), e.g. ( … ) CSStudents');
+      const a = next();
+      return { sub, alias: a.v, s: open.s, e: a.e, subSpan: [open.s, close.e], aliasSpan: [a.s, a.e] };
+    }
+    if (t.t !== 'id') err(`Expected a table name but found ${desc(t)}`);
+    next();
+    let aliasTok = null;
+    if (isKw('AS')) { next(); if (peek().t !== 'id') err('Expected a tuple-variable name after AS'); aliasTok = next(); }
+    else if (peek().t === 'id') aliasTok = next();
+    return { table: t.v, alias: aliasTok ? aliasTok.v : null, s: t.s, e: (aliasTok || t).e, nameSpan: [t.s, t.e], aliasSpan: aliasTok ? [aliasTok.s, aliasTok.e] : null };
+  }
+
+  const parseExpr = () => parseOr();
+  function parseOr() {
+    let l = parseAnd();
+    while (isKw('OR')) { next(); const r = parseAnd(); l = { type: 'bin', op: 'OR', l, r, s: l.s, e: r.e }; }
+    return l;
+  }
+  function parseAnd() {
+    let l = parseNot();
+    while (isKw('AND')) { next(); const r = parseNot(); l = { type: 'bin', op: 'AND', l, r, s: l.s, e: r.e }; }
+    return l;
+  }
+  function parseNot() {
+    if (isKw('NOT')) { const t = next(); const x = parseNot(); return { type: 'not', x, s: t.s, e: x.e }; }
+    return parseCmp();
+  }
+  function parseCmp() {
+    const l = parseAdd();
+    const t = peek();
+    if (t.t === 'op' && ['=', '<', '>', '<=', '>=', '<>'].includes(t.v)) {
+      next();
+      if (isKw('ALL') || isKw('ANY')) err(`${peek().up} is not supported in this tool yet.`);
+      const r = parseAdd();
+      return { type: 'bin', op: t.v, l, r, s: l.s, e: r.e };
+    }
+    if (isKw('IS')) {
+      next();
+      let neg = false;
+      if (isKw('NOT')) { next(); neg = true; }
+      if (!isKw('NULL')) err('Expected NULL after IS (e.g. IS NULL or IS NOT NULL)');
+      const nt = next();
+      return { type: 'isnull', x: l, neg, s: l.s, e: nt.e };
+    }
+    for (const w of ['IN', 'LIKE', 'BETWEEN'])
+      if (isKw(w) || (isKw('NOT') && isKw(w, 1))) err(`${w} is not supported in this tool yet.`);
+    return l;
+  }
+  function parseAdd() {
+    let l = parseMul();
+    while (isOp('+') || isOp('-')) { const op = next().v; const r = parseMul(); l = { type: 'bin', op, l, r, s: l.s, e: r.e }; }
+    return l;
+  }
+  function parseMul() {
+    let l = parseUnary();
+    while (isOp('*') || isOp('/')) { const op = next().v; const r = parseUnary(); l = { type: 'bin', op, l, r, s: l.s, e: r.e }; }
+    return l;
+  }
+  function parseUnary() {
+    if (isOp('-')) { const t = next(); const x = parseUnary(); return { type: 'neg', x, s: t.s, e: x.e }; }
+    return parsePrimary();
+  }
+  function parsePrimary() {
+    const t = peek();
+    if (t.t === 'num' || t.t === 'str') { next(); return { type: 'lit', v: t.v, s: t.s, e: t.e }; }
+    if (t.t === 'kw' && t.up === 'NULL') { next(); return { type: 'lit', v: null, s: t.s, e: t.e }; }
+    if (t.t === 'kw' && (t.up === 'TRUE' || t.up === 'FALSE')) { next(); return { type: 'lit', v: t.up === 'TRUE', s: t.s, e: t.e }; }
+    if (t.t === 'kw' && t.up === 'EXISTS') err('EXISTS is not supported in this tool yet.');
+    if (isP('(')) {
+      const open = next();
+      if (isKw('SELECT')) {
+        const sub = parseSub();
+        const close = expectP(')');
+        return { type: 'sub', q: sub, s: open.s, e: close.e };
+      }
+      const x = parseExpr();
+      const close = expectP(')');
+      return Object.assign({}, x, { s: open.s, e: close.e, paren: true });
+    }
+    if (t.t === 'id' && isP('(', 1)) {
+      const fn = t.v.toUpperCase();
+      if (!AGG.has(fn)) err(`The function ${t.v}(…) is not supported here. Aggregates: COUNT, AVG, SUM, MIN, MAX.`);
+      next(); next();
+      let distinct = false, arg;
+      if (isKw('DISTINCT')) { next(); distinct = true; } else if (isKw('ALL')) next();
+      if (isOp('*')) {
+        if (fn !== 'COUNT') err(`Only COUNT can take *, e.g. COUNT(*)`);
+        if (distinct) err('COUNT(DISTINCT *) is not valid SQL');
+        next(); arg = '*';
+      } else {
+        if (isP(')')) err(`${fn}( ) needs a column, e.g. ${fn}(gpa)`);
+        arg = parseExpr();
+      }
+      const close = expectP(')');
+      return { type: 'agg', fn, distinct, arg, s: t.s, e: close.e };
+    }
+    if (t.t === 'id') {
+      next();
+      if (isP('.')) {
+        next();
+        const c = peek();
+        if (c.t === 'op' && c.v === '*') err(`${t.v}.* is not supported here; list the columns you want`);
+        if (c.t !== 'id') err(`Expected a column name after "${t.v}."`);
+        next();
+        return { type: 'col', q: t.v, name: c.v, s: t.s, e: c.e };
+      }
+      return { type: 'col', q: null, name: t.v, s: t.s, e: t.e };
+    }
+    if (t.t === 'op' && t.v === '*') err('* can only be used as SELECT * or COUNT(*)');
+    err(`Expected a column or value but found ${desc(t)}`);
+  }
+
+  function parseTarget() {
+    if (peek().t !== 'id') err(`Expected a table name but found ${desc(peek())}`);
+    const t = next();
+    let alias = null;
+    if (isKw('AS')) next();
+    if (peek().t === 'id') alias = next().v;
+    return { table: t.v, alias, nameSpan: [t.s, t.e] };
+  }
+  function parseWhereOpt(q) {
+    if (isKw('WHERE')) {
+      clause = 'WHERE';
+      const w = next();
+      if (peek().t === 'eof' || isP(';')) err('WHERE needs a condition');
+      q.where = parseExpr();
+      q.spans.where = [w.s, last().e];
+    }
+  }
+  function parseDelete() {
+    clause = 'DELETE';
+    const d = next();
+    if (!isKw('FROM')) err('Write DELETE FROM table-name');
+    next();
+    const q = Object.assign({ kind: 'delete', spans: {}, where: null }, parseTarget());
+    q.spans.head = [d.s, last().e];
+    parseWhereOpt(q);
+    return q;
+  }
+  function parseUpdate() {
+    clause = 'UPDATE';
+    const u = next();
+    const q = Object.assign({ kind: 'update', spans: {}, where: null, sets: [] }, parseTarget());
+    q.spans.head = [u.s, last().e];
+    clause = 'SET';
+    if (!isKw('SET')) err('UPDATE needs SET, e.g. UPDATE Students SET gpa = 4.0');
+    const st = next();
+    for (;;) {
+      const c = peek();
+      if (c.t !== 'id') err(`Expected a column name after SET but found ${desc(c)}`);
+      next();
+      let name = c.v, qual = null;
+      if (isP('.')) { next(); qual = name; if (peek().t !== 'id') err('Expected a column name'); name = next().v; }
+      if (!isOp('=')) err(`Expected = after ${name}`);
+      next();
+      const ex = parseExpr();
+      q.sets.push({ col: { type: 'col', q: qual, name, s: c.s, e: c.e }, expr: ex, s: c.s, e: ex.e });
+      if (isP(',')) { next(); continue; }
+      break;
+    }
+    q.spans.set = [st.s, last().e];
+    parseWhereOpt(q);
+    return q;
+  }
+  let q;
+  if (isKw('DELETE')) q = parseDelete();
+  else if (isKw('UPDATE')) q = parseUpdate();
+  else if (isKw('INSERT')) throw new SqlError('INSERT is not supported in this tool yet. Try UPDATE or DELETE.', 'INSERT', peek().s, peek().e);
+  else q = parseQuery();
+  if (isP(';')) next();
+  if (peek().t !== 'eof') {
+    const t = peek();
+    if (t.t === 'kw' && ['WHERE', 'GROUP', 'ORDER', 'FROM', 'SELECT', 'DISTINCT'].includes(t.up)) {
+      const cl = t.up === 'GROUP' ? 'GROUP BY' : t.up === 'ORDER' ? 'ORDER BY' : t.up;
+      throw new SqlError(`${cl} is out of place. Clauses go in this order: SELECT, FROM, WHERE, GROUP BY, ORDER BY.`, cl, t.s, t.e);
+    }
+    if (t.t === 'p' && t.v === ')') throw new SqlError('There is a ")" without a matching "("', clause, t.s, t.e);
+    throw new SqlError(`Unexpected ${desc(t)} after the end of the query`, clause, t.s, t.e);
+  }
+  return q;
+}
+
+/* ---------------- Values ---------------- */
+function fmt(v, kind) {
+  if (v === null || v === undefined) return 'NULL';
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  if (typeof v === 'number') {
+    if (kind === 'avg') return v.toFixed(2);
+    if (Number.isInteger(v)) return String(v);
+    return String(Math.round(v * 10000) / 10000);
+  }
+  return String(v);
+}
+function fmtLit(v) { return typeof v === 'string' ? `'${v}'` : fmt(v); }
+const typeName = v => (typeof v === 'number' ? 'number' : typeof v === 'string' ? 'text' : typeof v);
+
+/* ---------------- Evaluation ---------------- */
+let CUR = { clause: null };
+
+function walk(n, f) {
+  if (!n || n === '*') return;
+  f(n);
+  if (n.type === 'bin') { walk(n.l, f); walk(n.r, f); }
+  else if (n.type === 'not' || n.type === 'neg' || n.type === 'isnull') walk(n.x, f);
+  else if (n.type === 'agg') walk(n.arg, f);
+}
+function hasAgg(n) { let h = false; walk(n, x => { if (x.type === 'agg') h = true; }); return h; }
+
+function evalE(n, row, grp) {
+  switch (n.type) {
+    case 'lit': return n.v;
+    case 'col': return row[n.idx];
+    case 'sub': return n.value;
+    case 'neg': { const v = evalE(n.x, row, grp); if (v === null) return null; needNum(v, n); return -v; }
+    case 'not': { const v = evalE(n.x, row, grp); return v === null ? null : !v; }
+    case 'isnull': { const v = evalE(n.x, row, grp); return n.neg ? v !== null : v === null; }
+    case 'agg': return aggregate(n, grp).value;
+    case 'bin': {
+      if (n.op === 'AND') {
+        const a = evalE(n.l, row, grp), b = evalE(n.r, row, grp);
+        if (a === false || b === false) return false;
+        if (a === null || b === null) return null;
+        return true;
+      }
+      if (n.op === 'OR') {
+        const a = evalE(n.l, row, grp), b = evalE(n.r, row, grp);
+        if (a === true || b === true) return true;
+        if (a === null || b === null) return null;
+        return false;
+      }
+      const a = evalE(n.l, row, grp), b = evalE(n.r, row, grp);
+      if (a === null || b === null) return null;
+      if (['+', '-', '*', '/'].includes(n.op)) {
+        needNum(a, n.l); needNum(b, n.r);
+        if (n.op === '+') return a + b;
+        if (n.op === '-') return a - b;
+        if (n.op === '*') return a * b;
+        if (b === 0) throw new SqlError('Division by zero', CUR.clause, n.s, n.e);
+        return a / b;
+      }
+      if (typeof a !== typeof b)
+        throw new SqlError(`Can't compare ${fmtLit(a)} (${typeName(a)}) with ${fmtLit(b)} (${typeName(b)})`, CUR.clause, n.s, n.e);
+      switch (n.op) {
+        case '=': return a === b;
+        case '<>': return a !== b;
+        case '<': return a < b;
+        case '>': return a > b;
+        case '<=': return a <= b;
+        case '>=': return a >= b;
+      }
+    }
+  }
+  throw new SqlError('Unsupported expression', CUR.clause, n.s, n.e);
+}
+function needNum(v, n) {
+  if (typeof v !== 'number') throw new SqlError(`Arithmetic needs numbers, but ${fmtLit(v)} is ${typeName(v)}`, CUR.clause, n.s, n.e);
+}
+
+function aggregate(n, rows) {
+  const vals = n.arg === '*' ? rows.map(() => 1) : rows.map(r => evalE(n.arg, r, null));
+  const used = [], dup = [];
+  const seen = new Set();
+  vals.forEach((v, i) => {
+    if (v === null) return;
+    if (n.distinct) { const k = typeof v + ':' + v; if (seen.has(k)) { dup.push(i); return; } seen.add(k); }
+    used.push(i);
+  });
+  const xs = used.map(i => vals[i]);
+  if ((n.fn === 'SUM' || n.fn === 'AVG') && xs.some(x => typeof x !== 'number'))
+    throw new SqlError(`${n.fn} needs numbers, but the values are text`, CUR.clause, n.s, n.e);
+  let value = null, formula = '';
+  const sum = () => xs.reduce((a, b) => a + b, 0);
+  switch (n.fn) {
+    case 'COUNT': value = xs.length; formula = `${xs.length} value${xs.length === 1 ? '' : 's'}`; break;
+    case 'SUM': value = xs.length ? sum() : null; formula = xs.length ? xs.map(x => fmt(x)).join(' + ') : 'no values'; break;
+    case 'AVG': value = xs.length ? sum() / xs.length : null; formula = xs.length ? `${fmt(sum())} ÷ ${xs.length}` : 'no values'; break;
+    case 'MIN': case 'MAX': {
+      if (xs.length) { value = xs.reduce((a, b) => ((n.fn === 'MIN' ? b < a : b > a) ? b : a)); }
+      formula = xs.length ? (n.fn === 'MIN' ? 'smallest value' : 'largest value') : 'no values';
+      break;
+    }
+  }
+  return { value, vals, used, dup, formula, kind: n.fn === 'AVG' ? 'avg' : null };
+}
+
+/* ---------------- Trace helpers ---------------- */
+let RID = 0;
+const newRid = p => `${p}${++RID}`;
+const ck = (rel, row, j) => `${rel.rid}|${row.key}|${j}`;
+const srcOf = (rel, row, j) => (rel.hidden && row.src ? row.src[j] : ck(rel, row, j));
+const text = (src, n) => src.slice(n.s, n.e).replace(/\s+/g, ' ').trim();
+const GROUP_COLORS = 6;
+
+function baseRel(tname, alias, aliased) {
+  const t = DB[tname];
+  return {
+    rid: `T:${alias}`,
+    title: tname,
+    badge: aliased ? alias : null,
+    tag: null,
+    cols: t.cols.map(c => ({ name: c, q: alias })),
+    rows: t.rows.map((vals, i) => ({ key: `${alias}${i}`, vals: vals.slice() })),
+  };
+}
+
+/* Build a render spec for a table. */
+function tableSpec(rel, o = {}) {
+  const qual = !!o.qual;
+  const cols = rel.cols.map((c, j) => ({
+    label: c.label || c.name,
+    q: qual && c.q ? c.q : null,
+    cls: (o.colCls && o.colCls[j]) || '',
+  }));
+  const rows = rel.rows.map((r, i) => ({
+    cls: (o.rowCls && o.rowCls(r, i)) || '',
+    mark: (o.mark && o.mark(r, i)) || null,
+    cells: r.vals.map((v, j) => ({
+      v: fmt(v, rel.fmts && rel.fmts[j]),
+      k: ck(rel, r, j),
+      f: r.src ? r.src[j] : null,
+      cls: [(o.colCls && o.colCls[j]) || '', (o.cellCls && o.cellCls(r, i, j)) || ''].join(' ').trim(),
+      num: typeof v === 'number',
+      nul: v === null,
+    })),
+    ghost: o.ghost ? o.ghost.map(g => ({ v: g.vals[i], k: `${rel.rid}|${r.key}|g${g.id}`, f: g.from ? g.from[i] : null })) : null,
+  }));
+  return {
+    kind: 'table', id: rel.rid, title: o.title || rel.title, badge: o.badge !== undefined ? o.badge : rel.badge,
+    tag: o.tag !== undefined ? o.tag : rel.tag, cls: o.cls || '', color: o.color, cols, rows,
+    ghostCols: o.ghost ? o.ghost.map(g => ({ label: g.label })) : null,
+    titleHl: o.titleHl || null, note: o.note || null, empty: o.empty || 'no rows', pointer: o.pointer || null,
+  };
+}
+const placeholder = (label) => ({ kind: 'placeholder', label: label || '' });
+
+function refCols(n) { const s = new Set(); walk(n, x => { if (x.type === 'col') s.add(x.idx); }); return s; }
+
+/* Text of an expression with rows substituted, e.g. "3.8 > 3.5" */
+function substText(src, n, row) {
+  const wrap = s => (n.paren ? `(${s})` : s);
+  switch (n.type) {
+    case 'lit': return wrap(src.slice(n.s, n.e));
+    case 'col': return wrap(fmtLit(row[n.idx]));
+    case 'sub': return wrap(fmtLit(n.value));
+    case 'neg': return wrap('-' + substText(src, n.x, row));
+    case 'not': return wrap('NOT ' + substText(src, n.x, row));
+    case 'isnull': return wrap(`${substText(src, n.x, row)} IS ${n.neg ? 'NOT ' : ''}NULL`);
+    case 'agg': return wrap(src.slice(n.s, n.e));
+    case 'bin': return wrap(`${substText(src, n.l, row)} ${n.op} ${substText(src, n.r, row)}`);
+  }
+  return '';
+}
+/* Parts of an expression's source text, with subqueries replaced by value chips */
+function exprParts(src, n) {
+  const subs = [];
+  walk(n, x => { if (x.type === 'sub') subs.push(x); });
+  subs.sort((a, b) => a.s - b.s);
+  const parts = [];
+  let pos = n.s;
+  for (const s of subs) {
+    if (s.s > pos) parts.push({ t: src.slice(pos, s.s) });
+    parts.push({ chip: fmtLit(s.value), f: s.valueKey ? `sv|${s.s}` : null, k: `svc|${s.s}` });
+    pos = s.e;
+  }
+  if (pos < n.e) parts.push({ t: src.slice(pos, n.e) });
+  return parts.map(p => (p.t !== undefined ? { t: p.t.replace(/\s+/g, ' ') } : p));
+}
+
+/* ---------------- Trace builder ---------------- */
+function buildTrace(src, opts) {
+  RID = 0;
+  const q = parse(src);
+  const T = { steps: [], crumbs: [], src, opts: opts || {} };
+  const root = { T, scopeId: 'main', scopeLabel: null, kind: 'main', extraLeft: [], scopeSpan: null, parentScope: null };
+  const result = q.kind ? traceDML(q, root) : traceQuery(q, root);
+  return { steps: T.steps, crumbs: T.crumbs, result, dml: !!q.kind };
+}
+
+function push(ctx, stage, spec) {
+  const T = ctx.T;
+  let c = T.crumbs[T.crumbs.length - 1];
+  const label = spec.crumbLabel || stage;
+  if (!c || c.stage !== stage || c.label !== label || c.scopeId !== ctx.scopeId) {
+    c = { stage, label, scopeId: ctx.scopeId, scopeLabel: ctx.scopeLabel, first: T.steps.length };
+    T.crumbs.push(c);
+  }
+  const step = Object.assign({ left: [], right: [], hl: [], hl2: [] }, spec, { stage, crumb: T.crumbs.length - 1, scopeSpan: ctx.scopeSpan });
+  if (ctx.extraLeft.length) step.left = step.left.concat(ctx.extraLeft);
+  T.steps.push(step);
+}
+
+function clauseAt(q, pos) {
+  const order = [['SELECT', 'select'], ['FROM', 'from'], ['WHERE', 'where'], ['GROUP BY', 'group'], ['ORDER BY', 'order']];
+  let res = 'SELECT';
+  for (const [name, k] of order) if (q.spans[k] && pos >= q.spans[k][0]) res = name;
+  return res;
+}
+
+function traceQuery(q, ctx) {
+  const src = ctx.T.src;
+  const E = (clause, msg, n) => new SqlError(msg, clause, n ? n.s : undefined, n ? n.e : undefined);
+
+  /* ---- 1. resolve FROM items (inner subqueries in FROM run first) ---- */
+  const items = [];
+  const joins = q.items.slice(1).map(it => it.join);
+  const explicit = joins.some(j => j.kind !== 'COMMA');
+  if (explicit && joins.some(j => j.kind === 'COMMA')) {
+    const c = joins.find(j => j.kind === 'COMMA');
+    throw new SqlError('Use either commas or JOIN in one FROM clause, not both.', 'FROM', c.s, c.s + 1);
+  }
+  const maxRel = explicit ? 3 : 2;
+  if (q.items.length > maxRel)
+    throw new SqlError(explicit ? 'This visualizer handles at most three tables joined with JOIN.' : 'This visualizer handles at most two relations separated by commas. For three tables, use JOIN … ON.', 'FROM', q.items[maxRel].s, q.items[q.items.length - 1].e);
+  for (const it of q.items) {
+    if (it.sub) {
+      const innerCtx = { T: ctx.T, scopeId: `sub@${it.s}`, scopeLabel: 'inner', kind: 'from', alias: it.alias, extraLeft: [], scopeSpan: it.subSpan, parentScope: null };
+      const res = traceQuery(it.sub, innerCtx);
+      const rel = Object.assign({}, res, {
+        title: it.alias, badge: null, tag: 'temporary',
+        cols: res.cols.map(c => ({ name: c.label || c.name, q: it.alias })),
+      });
+      items.push({ alias: it.alias, table: null, cols: rel.cols.map(c => c.name), rel, node: it });
+    } else {
+      const tname = Object.keys(DB).find(k => k.toLowerCase() === it.table.toLowerCase());
+      if (!tname) throw new SqlError(`There is no table called "${it.table}". Tables: ${Object.keys(DB).join(', ')}.`, 'FROM', it.nameSpan[0], it.nameSpan[1]);
+      const alias = it.alias || tname;
+      items.push({ alias, table: tname, cols: DB[tname].cols, rel: baseRel(tname, alias, !!it.alias), node: it });
+    }
+  }
+  for (let i = 0; i < items.length; i++) for (let j = 0; j < i; j++) {
+    if (items[i].alias.toLowerCase() === items[j].alias.toLowerCase()) {
+      const n = items[i].node;
+      throw new SqlError(`${items[i].alias} appears twice in FROM. Give each copy its own tuple variable, e.g. ${items[i].table || items[i].alias} s1, ${items[i].table || items[i].alias} s2.`, 'FROM', n.s, n.e);
+    }
+  }
+  let off = 0;
+  for (const it of items) { it.offset = off; off += it.cols.length; }
+  const scope = { items, parent: ctx.parentScope };
+  const two = !explicit && items.length === 2;
+  const multi = items.length >= 2;
+
+  /* ---- column resolution ---- */
+  function findCol(sc, n) {
+    const lc = n.name.toLowerCase();
+    if (n.q) {
+      const it = sc.items.find(i => i.alias.toLowerCase() === n.q.toLowerCase());
+      if (!it) return { err: 'noalias' };
+      const ci = it.cols.findIndex(c => c.toLowerCase() === lc);
+      return ci < 0 ? { err: 'nocol', it } : { idx: it.offset + ci };
+    }
+    const hits = [];
+    sc.items.forEach(it => { const ci = it.cols.findIndex(c => c.toLowerCase() === lc); if (ci >= 0) hits.push({ it, ci }); });
+    if (!hits.length) return { err: 'none' };
+    if (hits.length > 1) return { err: 'amb', hits };
+    return { idx: hits[0].it.offset + hits[0].ci };
+  }
+  function resolve(n, clause) {
+    const r = findCol(scope, n);
+    if (r.idx !== undefined) { n.idx = r.idx; return; }
+    if (scope.parent && findCol(scope.parent, n).idx !== undefined)
+      throw E(clause, `"${text(src, n)}" belongs to the outer query. Correlated subqueries are not supported in this tool.`, n);
+    if (r.err === 'noalias') {
+      const byTable = items.find(i => i.table && i.table.toLowerCase() === n.q.toLowerCase());
+      if (byTable) throw E(clause, `${n.q} was renamed ${byTable.alias} in FROM, so write ${byTable.alias}.${n.name}`, n);
+      throw E(clause, `Unknown table or tuple variable "${n.q}". In FROM: ${items.map(i => i.alias).join(', ')}.`, n);
+    }
+    if (r.err === 'nocol') throw E(clause, `${r.it.alias} has no column "${n.name}". Its columns: ${r.it.cols.join(', ')}.`, n);
+    if (r.err === 'amb') throw E(clause, `"${n.name}" is ambiguous: both ${r.hits.map(h => h.it.alias).join(' and ')} have it. Write ${r.hits[0].it.alias}.${n.name}.`, n);
+    const all = [...new Set(items.flatMap(i => i.cols))];
+    throw E(clause, `Unknown column "${n.name}". Available: ${all.join(', ')}.`, n);
+  }
+  function bind(n, clause, allowAgg) {
+    let inAgg = 0;
+    (function rec(x) {
+      if (!x || x === '*') return;
+      if (x.type === 'col') resolve(x, clause);
+      else if (x.type === 'agg') {
+        if (!allowAgg) throw E(clause, `Aggregates like ${text(src, x)} can't be used in ${clause}. ${clause} looks at one row at a time; aggregation looks at a whole column.`, x);
+        if (inAgg) throw E(clause, 'An aggregate cannot be nested inside another aggregate', x);
+        inAgg++; rec(x.arg); inAgg--;
+      } else if (x.type === 'bin') { rec(x.l); rec(x.r); }
+      else if (x.type === 'not' || x.type === 'neg' || x.type === 'isnull') rec(x.x);
+    })(n);
+  }
+
+  /* ---- 2. scalar subqueries run before the outer query ---- */
+  const subs = [];
+  const collect = n => walk(n, x => { if (x.type === 'sub') subs.push(x); });
+  q.selectItems.forEach(s => collect(s.expr));
+  collect(q.where);
+  joins.forEach(j => collect(j.on));
+  q.orderBy.forEach(o => collect(o.expr));
+  q.groupBy.forEach(g => collect(g));
+  const valuePanels = [];
+  subs.forEach((sn, si) => {
+    const label = subs.length > 1 ? `inner ${si + 1}` : 'inner';
+    const innerCtx = { T: ctx.T, scopeId: `sub@${sn.s}`, scopeLabel: label, kind: 'scalar', extraLeft: [], scopeSpan: [sn.s, sn.e], parentScope: scope };
+    const res = traceQuery(sn.q, innerCtx);
+    const cl = clauseAt(q, sn.s);
+    if (res.cols.length !== 1) throw new SqlError(`A subquery used as a value must return one column; this one returns ${res.cols.length}.`, cl, sn.s, sn.e);
+    if (res.rows.length > 1) throw new SqlError(`This subquery returns ${res.rows.length} rows, but a subquery used as a value must return exactly one.`, cl, sn.s, sn.e);
+    sn.value = res.rows.length ? res.rows[0].vals[0] : null;
+    sn.valueKey = res.rows.length ? ck(res, res.rows[0], 0) : null;
+    valuePanels.push({ kind: 'value', title: subs.length > 1 ? `subquery ${si + 1}` : 'subquery', v: fmt(sn.value, res.fmts && res.fmts[0]), k: `sv|${sn.s}`, f: sn.valueKey });
+  });
+
+  /* ---- 3. bind everything ---- */
+  q.selectItems.forEach(s => bind(s.expr, 'SELECT', true));
+  if (q.where) bind(q.where, 'WHERE', false);
+  joins.forEach((j, k) => {
+    if (!j.on) return;
+    bind(j.on, 'ON', false);
+    const lim = items[k + 1].offset + items[k + 1].cols.length;
+    walk(j.on, x => {
+      if (x.type === 'col' && x.idx >= lim)
+        throw E('ON', `"${text(src, x)}" belongs to a table that is joined later. This ON can only use ${items.slice(0, k + 2).map(i => i.alias).join(' and ')}.`, x);
+    });
+  });
+  q.groupBy.forEach(g => {
+    if (g.type !== 'col') throw E('GROUP BY', 'GROUP BY takes column names in this tool', g);
+    bind(g, 'GROUP BY', false);
+  });
+  const isAgg = q.groupBy.length > 0 || q.selectItems.some(s => hasAgg(s.expr)) || q.orderBy.some(o => hasAgg(o.expr));
+  if (isAgg && q.star) throw new SqlError('SELECT * cannot be combined with aggregation or GROUP BY. Name the columns and aggregates you want.', 'SELECT', q.starSpan[0], q.starSpan[1]);
+  const groupIdx = new Set(q.groupBy.map(g => g.idx));
+  const checkGrouped = (n, clause) => {
+    (function rec(x) {
+      if (!x || x === '*') return;
+      if (x.type === 'agg') return;
+      if (x.type === 'col' && !groupIdx.has(x.idx)) {
+        if (!q.groupBy.length) throw E(clause, `"${text(src, x)}" can't sit next to an aggregate without GROUP BY: the aggregate collapses all rows into one, so which ${x.name} would it show?`, x);
+        throw E(clause, `"${text(src, x)}" must appear in GROUP BY or be inside an aggregate like COUNT(…).`, x);
+      }
+      if (x.type === 'bin') { rec(x.l); rec(x.r); } else if (x.type === 'not' || x.type === 'neg' || x.type === 'isnull') rec(x.x);
+    })(n);
+  };
+  if (isAgg) q.selectItems.forEach(s => checkGrouped(s.expr, 'SELECT'));
+
+  /* ---- output columns ---- */
+  let outCols;
+  if (q.star) outCols = items.flatMap(it => it.cols.map(c => ({ name: c, label: multi ? `${it.alias}.${c}` : c, q: it.alias })));
+  else outCols = q.selectItems.map(s => ({ name: s.alias || text(src, s.expr), label: s.alias || text(src, s.expr) }));
+  const outFmts = q.star ? null : q.selectItems.map(s => (s.expr.type === 'agg' && s.expr.fn === 'AVG' ? 'avg' : null));
+
+  /* ---- ORDER BY binding ---- */
+  const orderKeys = q.orderBy.map(o => {
+    const n = o.expr;
+    if (n.type === 'lit' && typeof n.v === 'number') {
+      if (!Number.isInteger(n.v) || n.v < 1 || n.v > outCols.length) throw E('ORDER BY', `ORDER BY ${n.v}: there are only ${outCols.length} output column(s)`, n);
+      return { out: n.v - 1, dir: o.dir, n };
+    }
+    if (n.type === 'col' && !n.q) {
+      const j = outCols.findIndex(c => c.label.toLowerCase() === n.name.toLowerCase());
+      if (j >= 0) return { out: j, dir: o.dir, n };
+    }
+    const t = text(src, n).toLowerCase();
+    const j = outCols.findIndex(c => c.label.toLowerCase() === t);
+    if (j >= 0) return { out: j, dir: o.dir, n };
+    bind(n, 'ORDER BY', isAgg);
+    if (isAgg) checkGrouped(n, 'ORDER BY');
+    if (q.distinct) throw E('ORDER BY', `With SELECT DISTINCT, ORDER BY must use columns that are in the SELECT list ("${text(src, n)}" is not).`, n);
+    return { expr: n, dir: o.dir, n };
+  });
+
+  /* ---- the rest of the trace uses this: ---- */
+  ctx.extraLeft = ctx.extraLeft.concat(valuePanels);
+  const S = q.spans;
+  const selHl = [S.select];
+  const sourceSpecs = (o = {}) => items.map(it => tableSpec(it.rel, Object.assign({ cls: it.rel.tag ? 'temp' : '' }, o[it.alias] || {})));
+
+  /* ===== FROM ===== */
+  CUR.clause = 'FROM';
+  let R0;
+
+  /* grid labels: one short label per source relation in a row */
+  function labeler(rel) {
+    const aliases = [...new Set(rel.cols.map(c => c.q))];
+    const isText = j => rel.rows.some(r => typeof r.vals[j] === 'string');
+    const used = new Set();
+    const picks = aliases.map(a => {
+      const idx = rel.cols.map((c, j) => j).filter(j => rel.cols[j].q === a);
+      const named = idx.find(j => rel.cols[j].name.toLowerCase() === 'name');
+      if (named !== undefined) { used.add('name'); return [named]; }
+      if (aliases.length === 1 && idx.length <= 2) return idx;
+      const txt = idx.find(j => isText(j) && !used.has(rel.cols[j].name.toLowerCase()));
+      const pick = txt !== undefined ? txt : idx.find(j => !used.has(rel.cols[j].name.toLowerCase()));
+      const j = pick !== undefined ? pick : idx[0];
+      used.add(rel.cols[j].name.toLowerCase());
+      return [j];
+    });
+    return r => picks.map(p => p.map(j => fmt(r.vals[j])).join(' · ')).join(' · ');
+  }
+  function rowLabel(rel, r) { return labeler(rel)(r); }
+  function gridOf(L, Ltitle, Rr, Rtitle, stateFn, activeRow, note, id) {
+    const la = labeler(L), lb = labeler(Rr);
+    return {
+      kind: 'grid', id, note, aTitle: Ltitle, bTitle: Rtitle,
+      rowLabels: L.rows.map(la), colLabels: Rr.rows.map(lb),
+      cells: L.rows.map((ra, i) => Rr.rows.map((rb, j) => stateFn(i, j))),
+      active: activeRow,
+    };
+  }
+  function gridSpec(A, B, stateFn, activeRow, note) { return gridOf(A.rel, A.alias, B.rel, B.alias, stateFn, activeRow, note, R0.rid); }
+
+  if (items.length === 1) {
+    R0 = items[0].rel;
+    push(ctx, 'FROM', {
+      hl: [S.from], left: [tableSpec(R0, { titleHl: 'from', cls: R0.tag ? 'temp' : '' })], right: [placeholder()],
+      caption: null,
+      leftLabel: 'FROM', rightLabel: '',
+    });
+  } else if (two) {
+    const [A, B] = items;
+    const rows = [];
+    A.rel.rows.forEach(ra => B.rel.rows.forEach(rb => {
+      rows.push({
+        key: `${ra.key}+${rb.key}`, vals: ra.vals.concat(rb.vals),
+        src: ra.vals.map((_, j) => ck(A.rel, ra, j)).concat(rb.vals.map((_, j) => ck(B.rel, rb, j))),
+      });
+    }));
+    R0 = { rid: newRid('P'), title: `${A.alias} × ${B.alias}`, cols: items.flatMap(it => it.cols.map(c => ({ name: c, q: it.alias }))), rows, hidden: !!q.where };
+    const la = A.rel.rows.length, lb = B.rel.rows.length;
+    push(ctx, 'FROM', {
+      hl: [S.from], left: sourceSpecs(Object.fromEntries(items.map(it => [it.alias, { titleHl: 'from' }]))), right: [placeholder('?')],
+      caption: 'How many combinations?', leftLabel: 'FROM', rightLabel: '',
+    });
+    push(ctx, 'FROM', {
+      hl: [S.from], left: sourceSpecs(Object.fromEntries(items.map(it => [it.alias, { titleHl: 'from' }]))),
+      right: [gridSpec(A, B, () => 'n', -1, `${la} × ${lb} = ${la * lb} combinations`)],
+      caption: `${la} × ${lb} = ${la * lb} combinations`, leftLabel: 'FROM', rightLabel: 'every combination',
+    });
+  } else {
+    /* explicit JOIN chain: ((A JOIN B) JOIN C), one join at a time */
+    push(ctx, 'FROM', {
+      hl: [S.from], left: sourceSpecs(Object.fromEntries(items.map(it => [it.alias, { titleHl: 'from' }]))), right: [placeholder()],
+      caption: null,
+      leftLabel: 'FROM', rightLabel: '',
+    });
+    let L = items[0].rel, Lqual = false, Ltitle = items[0].alias;
+    for (let k = 1; k < items.length; k++) {
+      L = traceJoin(L, Lqual, Ltitle, items[k], joins[k - 1], k);
+      Lqual = true;
+      Ltitle = L.title;
+    }
+    R0 = L;
+  }
+
+  function traceJoin(L, Lqual, Ltitle, Rit, j, k) {
+    CUR.clause = 'ON';
+    const Rr = Rit.rel;
+    const on = j.on;
+    const outerL = j.kind === 'LEFT' || j.kind === 'FULL';
+    const outerR = j.kind === 'RIGHT' || j.kind === 'FULL';
+    const Lw = L.cols.length;
+    const pass = L.rows.map(lr => Rr.rows.map(rr => (on ? evalE(on, lr.vals.concat(rr.vals), null) === true : true)));
+    const lsrc = lr => lr.vals.map((_, c) => ck(L, lr, c));
+    const rsrc = rr => rr.vals.map((_, c) => ck(Rr, rr, c));
+    const nulls = n => new Array(n).fill(null);
+    const matchedRow = (lr, rr) => ({ key: `${lr.key}+${rr.key}`, vals: lr.vals.concat(rr.vals), src: lsrc(lr).concat(rsrc(rr)) });
+    const JOIN_SYM = { INNER: '⋈', LEFT: '⟕', RIGHT: '⟖', FULL: '⟗', CROSS: '×' };
+    const title = `${Ltitle} ${JOIN_SYM[j.kind]} ${Rit.alias}`;
+    const JR = { rid: newRid('J'), title, tag: null, cols: L.cols.concat(Rr.cols), rows: [] };
+    const matchedOnly = [];
+    const lHit = L.rows.map((_, i) => pass[i].some(Boolean));
+    const rHit = Rr.rows.map((_, jj) => L.rows.some((__, i) => pass[i][jj]));
+    L.rows.forEach((lr, i) => {
+      Rr.rows.forEach((rr, jj) => { if (pass[i][jj]) { const m = matchedRow(lr, rr); JR.rows.push(m); matchedOnly.push(m); } });
+      if (outerL && !lHit[i]) JR.rows.push({ key: `${lr.key}+∅`, vals: lr.vals.concat(nulls(Rr.cols.length)), src: lsrc(lr).concat(nulls(Rr.cols.length)), padded: true });
+    });
+    if (outerR) Rr.rows.forEach((rr, jj) => {
+      if (!rHit[jj]) JR.rows.push({ key: `∅+${rr.key}`, vals: nulls(Lw).concat(rr.vals), src: nulls(Lw).concat(rsrc(rr)), padded: true });
+    });
+    const refs = on ? refCols(on) : new Set();
+    const lCls = L.cols.map((c, jj) => (refs.has(jj) ? 'chk' : ''));
+    const rCls = Rr.cols.map((c, jj) => (refs.has(Lw + jj) ? 'chk' : ''));
+    const cond = on ? exprParts(src, on) : null;
+    const hl = [j.span], hl2 = j.onSpan ? [j.onSpan] : [];
+    const crumbLabel = `${j.label} ${Rit.table || Rit.alias}`;
+    const nl = L.rows.length, nr = Rr.rows.length;
+    const lSpec = o => tableSpec(L, Object.assign({ qual: Lqual, colCls: lCls, cls: L.tag === 'temporary' ? 'temp' : '' }, o));
+    const rSpec = o => tableSpec(Rr, Object.assign({ colCls: rCls, cls: Rr.tag ? 'temp' : '' }, o));
+    const gid = `grid${JR.rid}`;
+    const lname = Lqual ? 'row on the left' : `${Ltitle} row`;
+
+    if (j.kind === 'CROSS') {
+      push(ctx, 'JOIN', {
+        crumbLabel, hl, left: [lSpec({}), rSpec({})],
+        right: [gridOf(L, Ltitle, Rr, Rit.alias, () => 'p', -1, `${nl} × ${nr} = ${nl * nr}, all kept`, gid), tableSpec(JR, { qual: true, cls: 'out' })],
+        caption: `${nl} × ${nr} = ${nl * nr} rows, all kept`, leftLabel: 'CROSS JOIN inputs', rightLabel: 'every combination',
+      });
+      return JR;
+    }
+    push(ctx, 'JOIN', {
+      crumbLabel, hl, hl2, left: [lSpec({}), rSpec({})],
+      right: [gridOf(L, Ltitle, Rr, Rit.alias, () => 'n', -1, `${nl} × ${nr} = ${nl * nr} pairs to check`, gid)],
+      caption: 'Which pairs match?',
+      leftLabel: `${j.label} inputs`, rightLabel: 'pairs',
+    });
+    let kept = 0;
+    for (let i = 0; i < nl; i++) {
+      kept += pass[i].filter(Boolean).length;
+      const ok = pass[i].filter(Boolean).length;
+      const partialRel = Object.assign({}, JR, { rows: matchedOnly.slice(0, kept) });
+      push(ctx, 'JOIN', {
+        crumbLabel, hl, hl2,
+        left: [
+          lSpec({ rowCls: (r, ii) => (ii === i ? 'active' : 'pending'), cellCls: (r, ii, jj) => (ii === i && refs.has(jj) ? 'chk2' : ''), pointer: Lqual ? 'row' : Ltitle }),
+          rSpec({ rowCls: (r, jj) => (pass[i][jj] ? 'pass' : 'fail'), cellCls: (r, jj, c) => (refs.has(Lw + c) ? 'chk2' : ''), mark: (r, jj) => (pass[i][jj] ? 'yes' : 'no') }),
+        ],
+        right: [
+          gridOf(L, Ltitle, Rr, Rit.alias, (ii, jj) => (ii <= i ? (pass[ii][jj] ? 'p' : 'f') : 'n'), i, `${kept} of ${(i + 1) * nr} pairs match so far`, gid),
+          kept ? tableSpec(partialRel, { qual: true, cls: 'out' }) : placeholder(''),
+        ],
+        caption: `${rowLabel(L, L.rows[i])}: ${ok ? `${ok} match${ok > 1 ? 'es' : ''}` : 'no match'}`,
+        leftLabel: `fix one ${lname}, try every ${Rit.alias} row`, rightLabel: 'matching pairs so far',
+      });
+    }
+    if (outerL || outerR) {
+      const lostL = L.rows.filter((_, i) => !lHit[i]).map(r => rowLabel(L, r));
+      const lostR = Rr.rows.filter((_, jj) => !rHit[jj]).map(r => rowLabel(Rr, r));
+      const lost = (outerL ? lostL : []).concat(outerR ? lostR : []);
+      const side = j.kind === 'LEFT' ? `the left side (${Ltitle})` : j.kind === 'RIGHT' ? `the right side (${Rit.alias})` : 'both sides';
+      push(ctx, 'JOIN', {
+        crumbLabel, hl, hl2,
+        left: [
+          lSpec({ rowCls: (r, i) => (outerL && !lHit[i] ? 'nomatch' : ''), mark: (r, i) => (outerL && !lHit[i] ? 'nomatch' : null) }),
+          rSpec({ rowCls: (r, jj) => (outerR && !rHit[jj] ? 'nomatch' : ''), mark: (r, jj) => (outerR && !rHit[jj] ? 'nomatch' : null) }),
+        ],
+        right: [
+          gridOf(L, Ltitle, Rr, Rit.alias, (ii, jj) => (pass[ii][jj] ? 'p' : 'f'), -1, `${matchedOnly.length} matching pairs`, gid),
+          tableSpec(JR, { qual: true, cls: 'out', rowCls: r => (r.padded ? 'padded' : '') }),
+        ],
+        caption: lost.length ? `No match: ${lost.join(', ')} → kept with NULL` : 'Every row matched: nothing to pad',
+        leftLabel: 'rows with no match', rightLabel: `${j.label} output`,
+      });
+    }
+    return JR;
+  }
+
+  /* ===== WHERE ===== */
+  let R1 = R0;
+  if (q.where) {
+    CUR.clause = 'WHERE';
+    const w = q.where;
+    const refs = refCols(w);
+    const pass = R0.rows.map(r => evalE(w, r.vals, null) === true);
+    R1 = {
+      rid: newRid('W'), title: two ? `${items[0].alias} × ${items[1].alias}` : R0.title, badge: two ? null : R0.badge,
+      tag: two ? null : (R0.tag === 'temporary' ? 'temporary' : null),
+      cols: R0.cols,
+      rows: R0.rows.filter((r, i) => pass[i]).map(r => ({ key: r.key, vals: r.vals, src: r.vals.map((_, j) => srcOf(R0, r, j)), orig: r })),
+    };
+    const condParts = exprParts(src, w);
+    const whereCaption = `Keep ${two ? 'combinations' : 'rows'} where the condition is true`;
+    const partial = n => Object.assign({}, R1, { rows: R1.rows.slice(0, n) });
+
+    if (!two) {
+      const colCls = R0.cols.map((c, j) => (refs.has(j) ? 'chk' : ''));
+      push(ctx, 'WHERE', {
+        hl: [S.where], left: [tableSpec(R0, { qual: multi, colCls })], right: [placeholder('?')],
+        caption: 'Which rows pass?',
+      });
+      if (ctx.T.opts.rowByRow) {
+        let kept = 0;
+        R0.rows.forEach((r, i) => {
+          if (pass[i]) kept++;
+          const v = evalE(w, r.vals, null);
+          push(ctx, 'WHERE', {
+            hl: [S.where],
+            left: [tableSpec(R0, { qual: multi,
+              colCls,
+              rowCls: (rr, ii) => (ii === i ? 'active' : ii < i ? (pass[ii] ? 'pass' : 'fail') : 'pending'),
+              cellCls: (rr, ii, j) => (ii === i && refs.has(j) ? 'chk2' : ''),
+              mark: (rr, ii) => (ii <= i ? (pass[ii] ? 'yes' : 'no') : null),
+              badge: R0.badge,
+            })],
+            right: [kept ? tableSpec(partial(kept), { qual: multi, cls: 'out' }) : placeholder('')],
+            caption: null,
+            test: `${substText(src, w, r.vals)} → ${v === null ? 'UNKNOWN' : v ? 'TRUE' : 'FALSE'}`, testOk: v === true,
+            leftLabel: 'WHERE checks one row at a time', rightLabel: 'rows kept so far',
+          });
+        });
+      } else {
+        const marked = tableSpec(R0, { qual: multi,
+          colCls, rowCls: (r, i) => (pass[i] ? 'pass' : 'fail'), mark: (r, i) => (pass[i] ? 'yes' : 'no'),
+        });
+        const nKeep = pass.filter(Boolean).length;
+        push(ctx, 'WHERE', {
+          hl: [S.where], left: [marked], right: [placeholder('?')],
+          caption: `${nKeep} of ${R0.rows.length} rows pass`,
+          leftLabel: 'WHERE checks each row', rightLabel: '',
+        });
+        push(ctx, 'WHERE', {
+          hl: [S.where], left: [marked], right: [R1.rows.length ? tableSpec(R1, { qual: multi, cls: 'out' }) : tableSpec(R1, { qual: multi, cls: 'out', empty: 'no rows pass' })],
+          caption: null,
+          leftLabel: 'WHERE checks each row', rightLabel: 'WHERE output',
+        });
+      }
+    } else {
+      const [A, B] = items;
+      const na = A.rel.rows.length, nb = B.rel.rows.length;
+      const pairPass = (i, j) => pass[i * nb + j];
+      const colClsFor = it => it.cols.map((c, j) => (refs.has(it.offset + j) ? 'chk' : ''));
+      const survivorsUpTo = i => { let c = 0; for (let k = 0; k < (i + 1) * nb; k++) if (pass[k]) c++; return c; };
+      push(ctx, 'WHERE', {
+        hl: [S.where],
+        left: [tableSpec(A.rel, { colCls: colClsFor(A), cls: A.rel.tag ? 'temp' : '' }), tableSpec(B.rel, { colCls: colClsFor(B), cls: B.rel.tag ? 'temp' : '' })],
+        right: [gridSpec(A, B, () => 'n', -1, `${na * nb} combinations to check`)],
+        caption: 'Which combinations pass?',
+      });
+      for (let i = 0; i < na; i++) {
+        const nSurv = survivorsUpTo(i);
+        const ok = [];
+        for (let j = 0; j < nb; j++) if (pairPass(i, j)) ok.push(j);
+        push(ctx, 'WHERE', {
+          hl: [S.where],
+          left: [
+            tableSpec(A.rel, {
+              colCls: colClsFor(A), cls: A.rel.tag ? 'temp' : '',
+              rowCls: (r, ii) => (ii === i ? 'active' : 'pending'),
+              cellCls: (r, ii, j) => (ii === i && refs.has(A.offset + j) ? 'chk2' : ''),
+              pointer: A.alias,
+            }),
+            tableSpec(B.rel, {
+              colCls: colClsFor(B), cls: B.rel.tag ? 'temp' : '',
+              rowCls: (r, jj) => (pairPass(i, jj) ? 'pass' : 'fail'),
+              cellCls: (r, jj, j) => (refs.has(B.offset + j) ? 'chk2' : ''),
+              mark: (r, jj) => (pairPass(i, jj) ? 'yes' : 'no'),
+            }),
+          ],
+          right: [
+            gridSpec(A, B, (ii, jj) => (ii < i ? (pairPass(ii, jj) ? 'p' : 'f') : ii === i ? (pairPass(ii, jj) ? 'p' : 'f') : 'n'), i,
+              `${nSurv} of ${(i + 1) * nb} checked so far pass`),
+            nSurv ? tableSpec(partial(nSurv), { qual: true, cls: 'out' }) : placeholder(''),
+          ],
+          caption: `${rowLabel(A.rel, A.rel.rows[i])}: ${ok.length ? `${ok.length} match${ok.length > 1 ? 'es' : ''}` : 'no match'}`,
+          leftLabel: `fix one ${A.alias} row, try every ${B.alias} row`, rightLabel: 'combinations kept so far',
+          pointerAlias: A.alias,
+        });
+      }
+    }
+  }
+
+  /* ===== GROUP BY / aggregation / SELECT ===== */
+  let OUT;
+  const qualIn = multi;
+  if (isAgg) {
+    CUR.clause = 'SELECT';
+    const aggNodes = [];
+    const seenAgg = new Set();
+    const addAggs = n => walk(n, x => { if (x.type === 'agg') { const t = text(src, x).toLowerCase(); if (!seenAgg.has(t)) { seenAgg.add(t); aggNodes.push(x); } } });
+    q.selectItems.forEach(s => addAggs(s.expr));
+    orderKeys.forEach(k => { if (k.expr) addAggs(k.expr); });
+    const aggArgCols = new Set();
+    let countStar = false;
+    aggNodes.forEach(a => { if (a.arg === '*') countStar = true; else refCols(a.arg).forEach(c => aggArgCols.add(c)); });
+    const aggHl = aggNodes.map(a => [a.s, a.e]);
+
+    let groups;
+    if (q.groupBy.length) {
+      CUR.clause = 'GROUP BY';
+      const gmap = new Map();
+      groups = [];
+      R1.rows.forEach(r => {
+        const gk = JSON.stringify(q.groupBy.map(g => r.vals[g.idx]));
+        let g = gmap.get(gk);
+        if (!g) { g = { key: `g${groups.length}`, color: groups.length % GROUP_COLORS, rows: [], label: q.groupBy.map(gg => `${gg.name} = ${fmt(r.vals[gg.idx])}`).join(', ') }; gmap.set(gk, g); groups.push(g); }
+        g.rows.push(r);
+      });
+      const gOf = new Map();
+      groups.forEach(g => g.rows.forEach(r => gOf.set(r.key, g)));
+      const grpCols = R1.cols.map((c, j) => (groupIdx.has(j) ? 'grp' : ''));
+      push(ctx, 'GROUP BY', {
+        hl: [S.group], left: [tableSpec(R1, { colCls: grpCols, qual: qualIn })], right: [placeholder('?')],
+        caption: 'Which rows belong together?',
+        leftLabel: 'GROUP BY input', rightLabel: '',
+      });
+      groups.forEach(g => {
+        g.rel = { rid: newRid('G'), title: g.label, cols: R1.cols, rows: g.rows.map(r => ({ key: r.key, vals: r.vals, src: r.vals.map((_, j) => ck(R1, r, j)) })) };
+      });
+      const partSpecs = (o = {}) => groups.map(g => tableSpec(g.rel, Object.assign({ qual: qualIn, color: g.color, cls: 'group', colCls: grpCols, rowCls: () => `g${g.color}` }, o)));
+      push(ctx, 'GROUP BY', {
+        hl: [S.group],
+        left: [tableSpec(R1, { colCls: grpCols, qual: qualIn, rowCls: r => `g${gOf.get(r.key).color}` })],
+        right: partSpecs(),
+        caption: `${groups.length} group${groups.length === 1 ? '' : 's'}`,
+        leftLabel: 'GROUP BY input', rightLabel: 'groups',
+      });
+      CUR.clause = 'SELECT';
+      const aggCols = R1.cols.map((c, j) => (aggArgCols.has(j) ? 'agg' : groupIdx.has(j) ? 'grp' : ''));
+      const groupsLeft = () => groups.map(g => tableSpec(g.rel, { qual: qualIn, color: g.color, cls: 'group', colCls: aggCols, rowCls: () => `g${g.color} ${countStar ? 'aggrow' : ''}` }));
+      push(ctx, 'SELECT', {
+        hl: selHl, hl2: aggHl, left: groupsLeft(), right: [placeholder('?')],
+        caption: 'One aggregate per group',
+        leftLabel: 'groups', rightLabel: '',
+      });
+      groups.forEach(g => { g.aggs = aggNodes.map(a => ({ node: a, r: aggregate(a, g.rows.map(r => r.vals)) })); });
+      const boxes = (phase) => groups.flatMap(g => g.aggs.map((ga, ai) => aggBox(ga.node, ga.r, g.rel, g.rows, phase, g.color, g.label, `${g.key}a${ai}`)));
+      const anyDup = groups.some(g => g.aggs.some(ga => ga.r.dup.length));
+      push(ctx, 'SELECT', {
+        hl: selHl, hl2: aggHl, left: groupsLeft(), right: boxes('gather'),
+        caption: null, leftLabel: 'groups', rightLabel: 'aggregate, per group',
+      });
+      if (anyDup) push(ctx, 'SELECT', {
+        hl: selHl, hl2: aggHl, left: groupsLeft(), right: boxes('dedupe'),
+        caption: 'Repeated values ignored', leftLabel: 'groups', rightLabel: 'aggregate, per group',
+      });
+      OUT = {
+        rid: newRid('O'), title: 'result', cols: outCols, fmts: outFmts,
+        rows: groups.map(g => ({
+          key: g.key, grp: g.rows.map(r => r.vals), color: g.color,
+          vals: q.selectItems.map(s => evalE(s.expr, g.rows[0].vals, g.rows.map(r => r.vals))),
+          src: q.selectItems.map(s => {
+            if (s.expr.type === 'agg') { const ai = aggNodes.findIndex(a => text(src, a).toLowerCase() === text(src, s.expr).toLowerCase()); return `aggres|${g.key}a${ai}`; }
+            if (s.expr.type === 'col') return ck(g.rel, g.rel.rows[0], s.expr.idx);
+            return null;
+          }),
+        })),
+      };
+      push(ctx, 'SELECT', {
+        hl: selHl, hl2: aggHl, left: groupsLeft(), right: boxes('collapse').concat([tableSpec(OUT, { rowCls: r => `g${r.color}`, cls: 'out' })]),
+        caption: 'One row per group', leftLabel: 'groups', rightLabel: 'one row per group',
+      });
+    } else {
+      /* aggregation over the whole relation */
+      const aggCols = R1.cols.map((c, j) => (aggArgCols.has(j) ? 'agg' : ''));
+      const leftSpec = () => tableSpec(R1, { colCls: aggCols, qual: qualIn, rowCls: () => (countStar ? 'aggrow' : '') });
+      push(ctx, 'SELECT', {
+        hl: selHl, hl2: aggHl, left: [leftSpec()], right: [placeholder('?')],
+        caption: 'Uses the whole column, not one row at a time', leftLabel: 'SELECT input', rightLabel: '',
+        leftLabel: 'SELECT input', rightLabel: '',
+      });
+      const rowsV = R1.rows.map(r => r.vals);
+      const results = aggNodes.map(a => aggregate(a, rowsV));
+      const boxes = phase => aggNodes.map((a, ai) => aggBox(a, results[ai], R1, R1.rows, phase, null, null, `all${ai}`));
+      push(ctx, 'SELECT', {
+        hl: selHl, hl2: aggHl, left: [leftSpec()], right: boxes('gather'),
+        caption: null, leftLabel: 'SELECT input', rightLabel: 'aggregate',
+      });
+      if (results.some(r => r.dup.length)) push(ctx, 'SELECT', {
+        hl: selHl, hl2: aggHl, left: [leftSpec()], right: boxes('dedupe'),
+        caption: 'Repeated values ignored', leftLabel: 'SELECT input', rightLabel: 'aggregate',
+      });
+      OUT = {
+        rid: newRid('O'), title: 'result', cols: outCols, fmts: outFmts,
+        rows: [{
+          key: 'all', grp: rowsV,
+          vals: q.selectItems.map(s => evalE(s.expr, rowsV[0] || [], rowsV)),
+          src: q.selectItems.map(s => {
+            if (s.expr.type === 'agg') { const ai = aggNodes.findIndex(a => text(src, a).toLowerCase() === text(src, s.expr).toLowerCase()); return `aggres|all${ai}`; }
+            return null;
+          }),
+        }],
+      };
+      push(ctx, 'SELECT', {
+        hl: selHl, hl2: aggHl, left: [leftSpec()], right: boxes('collapse').concat([tableSpec(OUT, { cls: 'out' })]),
+        caption: `${R1.rows.length} ${countStar && !aggArgCols.size ? 'rows' : 'values'} → 1 value`, leftLabel: 'SELECT input', rightLabel: 'one row',
+      });
+    }
+  } else {
+    CUR.clause = 'SELECT';
+    const selRefs = new Set();
+    if (q.star) R1.cols.forEach((c, j) => selRefs.add(j));
+    else q.selectItems.forEach(s => refCols(s.expr).forEach(c => selRefs.add(c)));
+    const colCls = R1.cols.map((c, j) => (selRefs.has(j) ? 'sel' : 'drop'));
+    OUT = {
+      rid: newRid('O'), title: 'result', cols: outCols, fmts: outFmts,
+      rows: R1.rows.map(r => ({
+        key: r.key, ctxRow: r.vals,
+        vals: q.star ? r.vals.slice() : q.selectItems.map(s => evalE(s.expr, r.vals, null)),
+        src: q.star ? r.vals.map((_, j) => srcOf(R1, r, j)) : q.selectItems.map(s => (s.expr.type === 'col' ? srcOf(R1, r, s.expr.idx) : null)),
+      })),
+    };
+    const leftSel = tableSpec(R1, { colCls, qual: qualIn });
+    push(ctx, 'SELECT', {
+      hl: selHl, left: [leftSel], right: [placeholder('?')],
+      caption: null,
+      leftLabel: 'SELECT input', rightLabel: '',
+    });
+    push(ctx, 'SELECT', {
+      hl: selHl, left: [leftSel], right: [tableSpec(OUT, { cls: 'out', empty: 'no rows' })],
+      caption: null,
+      leftLabel: 'SELECT input', rightLabel: 'SELECT output',
+    });
+  }
+
+  /* ===== DISTINCT ===== */
+  const rowColor = r => (r.color !== undefined ? `g${r.color}` : '');
+  if (q.distinct) {
+    CUR.clause = 'SELECT';
+    const sig = r => JSON.stringify(r.vals);
+    const counts = new Map();
+    OUT.rows.forEach(r => counts.set(sig(r), (counts.get(sig(r)) || 0) + 1));
+    const dupColor = new Map();
+    let ci = 0;
+    OUT.rows.forEach(r => { const s = sig(r); if (counts.get(s) > 1 && !dupColor.has(s)) dupColor.set(s, ci++ % GROUP_COLORS); });
+    const firstSeen = new Set();
+    const isRepeat = OUT.rows.map(r => { const s = sig(r); if (firstSeen.has(s)) return true; firstSeen.add(s); return false; });
+    const tint = r => (dupColor.has(sig(r)) ? `g${dupColor.get(sig(r))}` : '');
+    const dupCount = isRepeat.filter(Boolean).length;
+    push(ctx, 'DISTINCT', {
+      hl: [S.distinct], left: [tableSpec(OUT, { rowCls: tint })], right: [placeholder('?')],
+      caption: dupCount ? 'Same colour = duplicate rows' : 'No duplicates',
+      leftLabel: 'a bag: duplicates allowed', rightLabel: '',
+    });
+    const DOUT = {
+      rid: newRid('D'), title: 'result', cols: OUT.cols, fmts: OUT.fmts,
+      rows: OUT.rows.filter((r, i) => !isRepeat[i]).map(r => Object.assign({}, r, { src: r.vals.map((_, j) => ck(OUT, r, j)) })),
+    };
+    push(ctx, 'DISTINCT', {
+      hl: [S.distinct],
+      left: [tableSpec(OUT, { rowCls: (r, i) => `${tint(r)} ${isRepeat[i] ? 'fail' : ''}`, mark: (r, i) => (isRepeat[i] ? 'dup' : null) })],
+      right: [tableSpec(DOUT, { rowCls: tint, cls: 'out' })],
+      caption: `${OUT.rows.length} rows → ${DOUT.rows.length} rows`,
+      leftLabel: 'a bag: duplicates allowed', rightLabel: 'a set: each row once',
+    });
+    OUT = DOUT;
+  }
+
+  /* ===== ORDER BY ===== */
+  if (orderKeys.length) {
+    CUR.clause = 'ORDER BY';
+    const ghosts = [];
+    const keyVals = OUT.rows.map(r => orderKeys.map(k => {
+      if (k.out !== undefined) return r.vals[k.out];
+      return isAgg ? evalE(k.expr, (r.grp[0] || []), r.grp) : evalE(k.expr, r.ctxRow, null);
+    }));
+    orderKeys.forEach((k, ki) => {
+      if (k.out === undefined) ghosts.push({ id: ki, label: text(src, k.n), vals: keyVals.map(kv => fmt(kv[ki])) });
+    });
+    const sortCls = OUT.cols.map((c, j) => (orderKeys.some(k => k.out === j) ? 'sort' : ''));
+    const cmp = (a, b) => {
+      for (let ki = 0; ki < orderKeys.length; ki++) {
+        const x = keyVals[a][ki], y = keyVals[b][ki];
+        let c = 0;
+        if (x === null && y === null) c = 0; else if (x === null) c = 1; else if (y === null) c = -1;
+        else c = x < y ? -1 : x > y ? 1 : 0;
+        if (orderKeys[ki].dir === 'DESC') c = -c;
+        if (c) return c;
+      }
+      return a - b;
+    };
+    const order = OUT.rows.map((_, i) => i).sort(cmp);
+    const dirText = orderKeys.map(k => `${text(src, k.n)} ${k.dir === 'DESC' ? '↓ DESC' : '↑ ASC'}`).join(', then ');
+    push(ctx, 'ORDER BY', {
+      hl: [S.order], left: [tableSpec(OUT, { colCls: sortCls, ghost: ghosts, rowCls: rowColor })], right: [placeholder('?')],
+      caption: null, leftLabel: 'current order', rightLabel: '',
+    });
+    const SOUT = {
+      rid: newRid('S'), title: 'result', cols: OUT.cols, fmts: OUT.fmts,
+      rows: order.map(i => Object.assign({}, OUT.rows[i], { src: OUT.rows[i].vals.map((_, j) => ck(OUT, OUT.rows[i], j)) })),
+    };
+    const sGhosts = ghosts.map(g => ({ id: g.id, label: g.label, vals: order.map(i => g.vals[i]), from: order.map(i => `${OUT.rid}|${OUT.rows[i].key}|g${g.id}`) }));
+    push(ctx, 'ORDER BY', {
+      hl: [S.order], left: [tableSpec(OUT, { colCls: sortCls, ghost: ghosts, rowCls: rowColor })],
+      right: [tableSpec(SOUT, { colCls: sortCls, ghost: sGhosts, rowCls: rowColor, cls: 'out' })],
+      caption: null, leftLabel: 'current order', rightLabel: 'sorted',
+    });
+    OUT = SOUT;
+  }
+
+  /* ===== RESULT ===== */
+  const finalSpec = o => tableSpec(OUT, Object.assign({ rowCls: rowColor, empty: 'no rows' }, o));
+  if (ctx.kind === 'main') {
+    push(ctx, 'RESULT', {
+      hl: [], left: sourceSpecs(), right: [finalSpec({ cls: 'final', tag: null, title: 'Result' })],
+      caption: `${OUT.rows.length} row${OUT.rows.length === 1 ? '' : 's'}`, leftLabel: 'from these tables', rightLabel: 'final output',
+    });
+  } else if (ctx.kind === 'from') {
+    OUT = Object.assign({}, OUT, { title: ctx.alias, tag: 'temporary' });
+    push(ctx, 'RESULT', {
+      crumbLabel: `= ${ctx.alias}`,
+      hl: [], left: sourceSpecs(), right: [finalSpec({ cls: 'temp', title: ctx.alias, tag: 'temporary' })],
+      caption: null, leftLabel: 'subquery input', rightLabel: 'temporary table',
+    });
+  } else {
+    const oneVal = OUT.rows.length === 1 && OUT.cols.length === 1;
+    push(ctx, 'RESULT', {
+      crumbLabel: '= value',
+      hl: [], left: sourceSpecs(), right: [finalSpec({ cls: 'temp', title: 'subquery result', tag: oneVal ? 'one value' : null })],
+      caption: oneVal ? 'One row, one column → a single value' : null,
+      leftLabel: 'subquery input', rightLabel: 'used as a value',
+    });
+  }
+  return OUT;
+
+  /* aggregate box spec */
+  function aggBox(node, r, rel, rows, phase, color, groupLabel, id) {
+    const chips = rows.map((row, i) => {
+      const isStar = node.arg === '*';
+      const j = isStar ? 0 : [...refCols(node.arg)][0];
+      const v = isStar ? '●' : fmt(r.vals[i]);
+      const f = j === undefined ? null : ck(rel, row, j);
+      let cls = '';
+      if (r.vals[i] === null) cls = 'null';
+      if (phase !== 'gather' && r.dup.includes(i)) cls = 'dup';
+      if (phase === 'collapse' && cls !== 'dup') cls = 'gone';
+      if ((node.fn === 'MIN' || node.fn === 'MAX') && phase === 'collapse' && r.vals[i] === r.value) cls = 'winner';
+      return { v, k: `chip|${id}|${i}`, f, cls };
+    });
+    return {
+      kind: 'agg', id, title: text(src, node), color, group: groupLabel, chips,
+      formula: phase === 'collapse' ? r.formula : null,
+      result: phase === 'collapse' ? fmt(r.value, r.kind) : null, rk: `aggres|${id}`,
+    };
+  }
+}
+
+/* ======================= DML: UPDATE / DELETE ======================= */
+function ruleFor(opts, fk, kind) {
+  const r = (opts.rules || {})[`${fk.child}.${fk.col}`];
+  return (r && r[kind]) || 'RESTRICT';
+}
+function traceDML(q, ctx) {
+  const T = ctx.T, src = T.src, opts = T.opts;
+  const isDel = q.kind === 'delete';
+  const verb = isDel ? 'DELETE' : 'UPDATE';
+  const tname = Object.keys(DB).find(k => k.toLowerCase() === q.table.toLowerCase());
+  if (!tname) throw new SqlError(`There is no table called "${q.table}". Tables: ${Object.keys(DB).join(', ')}.`, verb, q.nameSpan[0], q.nameSpan[1]);
+  const alias = q.alias || tname;
+  const cols = DB[tname].cols;
+
+  /* bind columns of the target table */
+  function bindT(n, clause) {
+    walk(n, x => {
+      if (x.type === 'agg') throw new SqlError(`Aggregates like ${text(src, x)} can't be used in ${clause} here`, clause, x.s, x.e);
+      if (x.type === 'col') {
+        if (x.q && x.q.toLowerCase() !== alias.toLowerCase() && x.q.toLowerCase() !== tname.toLowerCase())
+          throw new SqlError(`Unknown table or tuple variable "${x.q}". This statement only uses ${tname}.`, clause, x.s, x.e);
+        const i = cols.findIndex(c => c.toLowerCase() === x.name.toLowerCase());
+        if (i < 0) throw new SqlError(`${tname} has no column "${x.name}". Its columns: ${cols.join(', ')}.`, clause, x.s, x.e);
+        x.idx = i;
+      }
+    });
+    let hasSub = false;
+    (function rec(x) { if (!x || x === '*') return; if (x.type === 'sub') hasSub = true; if (x.type === 'bin') { rec(x.l); rec(x.r); } else if (x.x) rec(x.x); })(n);
+    if (hasSub) throw new SqlError('Subqueries inside UPDATE/DELETE are not supported in this tool.', clause, n.s, n.e);
+  }
+  if (q.where) bindT(q.where, 'WHERE');
+  if (!isDel) q.sets.forEach(s => { bindT(s.col, 'SET'); bindT(s.expr, 'SET'); });
+
+  /* working state: one relation per table, replaced (never mutated) as things change */
+  const cur = {}, before = {};
+  const rel = t => cur[t] || (cur[t] = before[t] = baseRel(t, t, false));
+  const touched = [];
+  const touch = t => { if (!touched.includes(t)) touched.push(t); };
+  const next = (t, rows, tag) => {
+    const old = rel(t);
+    cur[t] = Object.assign({}, old, { rid: newRid('M'), tag: tag || null, rows: rows.map(r => Object.assign({}, r, { src: r.vals.map((_, j) => (r.srcKey ? `${old.rid}|${r.srcKey}|${j}` : ck(old, r, j))) })) });
+    touch(t);
+    return cur[t];
+  };
+  const target0 = rel(tname);
+  touch(tname);
+  CUR.clause = 'WHERE';
+  const match = target0.rows.map(r => (q.where ? evalE(q.where, r.vals, null) === true : true));
+  const hitRows = target0.rows.filter((r, i) => match[i]);
+  const whereRefs = q.where ? refCols(q.where) : new Set();
+  const fkKeyOf = fk => `${fk.child}.${fk.col}`;
+  const hlHead = [q.spans.head];
+
+  push(ctx, 'FROM', {
+    crumbLabel: isDel ? `FROM ${tname}` : `UPDATE ${tname}`, hl: hlHead,
+    left: [tableSpec(target0, { titleHl: 'from' })], right: [placeholder()], caption: null,
+  });
+  if (q.where) {
+    const colCls = cols.map((c, j) => (whereRefs.has(j) ? 'chk' : ''));
+    push(ctx, 'WHERE', { hl: [q.spans.where], left: [tableSpec(target0, { colCls })], right: [placeholder('?')], caption: `Which rows get ${isDel ? 'deleted' : 'updated'}?` });
+    push(ctx, 'WHERE', {
+      hl: [q.spans.where], right: [placeholder('?')],
+      left: [tableSpec(target0, { colCls, rowCls: (r, i) => (match[i] ? (isDel ? 'doomed' : 'target') : 'fail'), mark: (r, i) => (match[i] ? 'yes' : 'no') })],
+      caption: `${hitRows.length} of ${target0.rows.length} rows match`,
+    });
+  }
+
+  let rejected = null;
+  const events = [];
+
+  if (isDel) {
+    /* ---- DELETE + referential actions ---- */
+    const afterT = next(tname, target0.rows.filter((r, i) => !match[i]));
+    push(ctx, 'DELETE', {
+      hl: [q.spans.head],
+      left: [tableSpec(target0, { rowCls: (r, i) => (match[i] ? 'doomed' : ''), mark: (r, i) => (match[i] ? 'del' : null) })],
+      right: [tableSpec(afterT, { cls: 'out' })],
+      caption: hitRows.length ? `${hitRows.length} row${hitRows.length > 1 ? 's' : ''} removed from ${tname}` : 'No rows match: nothing to delete',
+    });
+    /* follow foreign keys that point at deleted rows, depth-first */
+    const cascadeDelete = (parent, goneRows, depth, parentBefore) => {
+      if (rejected || depth > 8) return;
+      for (const fk of FKS.filter(f => f.parent === parent)) {
+        const pci = DB[parent].cols.indexOf(fk.pcol);
+        const goneVals = new Set(goneRows.map(r => r.vals[pci]));
+        const still = new Set(rel(parent).rows.map(r => r.vals[pci]));
+        still.forEach(v => goneVals.delete(v));
+        const child = rel(fk.child);
+        const cci = DB[fk.child].cols.indexOf(fk.col);
+        const refRows = child.rows.filter(r => r.vals[cci] !== null && goneVals.has(r.vals[cci]));
+        if (!refRows.length) continue;
+        const rule = ruleFor(opts, fk, 'del');
+        const ev = { fk, rule, before: child, refKeys: new Set(refRows.map(r => r.key)), cci, vals: [...new Set(refRows.map(r => r.vals[cci]))], parentBefore, parentMark: new Set(goneRows.map(r => r.key)), pci };
+        events.push(ev);
+        if (rule === 'RESTRICT') { rejected = ev; return; }
+        if (rule === 'CASCADE') {
+          ev.after = next(fk.child, child.rows.filter(r => !ev.refKeys.has(r.key)));
+          cascadeDelete(fk.child, refRows, depth + 1, child);
+          if (rejected) return;
+        } else {
+          ev.after = next(fk.child, child.rows.map(r => (ev.refKeys.has(r.key) ? Object.assign({}, r, { vals: r.vals.map((v, j) => (j === cci ? null : v)) }) : r)));
+        }
+      }
+    };
+    cascadeDelete(tname, hitRows, 0, target0);
+  } else {
+    /* ---- UPDATE + referential actions ---- */
+    CUR.clause = 'SET';
+    const setIdx = q.sets.map(s => s.col.idx);
+    const newVals = target0.rows.map((r, i) => {
+      if (!match[i]) return r.vals;
+      const v = r.vals.slice();
+      q.sets.forEach(s => { v[s.col.idx] = evalE(s.expr, r.vals, null); });
+      return v;
+    });
+    const changed = (i, j) => match[i] && setIdx.includes(j) && newVals[i][j] !== target0.rows[i].vals[j];
+    const afterRows = target0.rows.map((r, i) => Object.assign({}, r, { vals: newVals[i] }));
+    const afterT = next(tname, afterRows);
+    const showChange = Object.assign({}, afterT, {
+      rows: afterT.rows.map((r, i) => Object.assign({}, r, { vals: r.vals.map((v, j) => (changed(i, j) ? `${fmt(target0.rows[i].vals[j])} → ${fmt(v)}` : v)) })),
+    });
+    const setCls = cols.map((c, j) => (setIdx.includes(j) ? 'setcol' : ''));
+    const nChanged = target0.rows.reduce((a, r, i) => a + cols.filter((c, j) => changed(i, j)).length, 0);
+    push(ctx, 'SET', {
+      hl: [q.spans.set],
+      left: [tableSpec(target0, { colCls: setCls, rowCls: (r, i) => (match[i] ? 'target' : 'fail') })],
+      right: [tableSpec(showChange, { cls: 'out', cellCls: (r, i, j) => (changed(i, j) ? 'changed' : '') })],
+      caption: nChanged ? `${nChanged} value${nChanged > 1 ? 's' : ''} change` : 'Nothing changes',
+    });
+    /* 1) updated foreign-key columns must still point at an existing parent */
+    for (const fk of FKS.filter(f => f.child === tname)) {
+      const cci = cols.indexOf(fk.col);
+      if (!setIdx.includes(cci)) continue;
+      const pci = DB[fk.parent].cols.indexOf(fk.pcol);
+      const parentVals = new Set(rel(fk.parent).rows.map(r => r.vals[pci]));
+      const bad = afterT.rows.filter((r, i) => changed(i, cci) && r.vals[cci] !== null && !parentVals.has(r.vals[cci]));
+      if (bad.length) {
+        rejected = { fk, rule: 'FOREIGN KEY', check: true, badVals: [...new Set(bad.map(r => r.vals[cci]))], badKeys: new Set(bad.map(r => r.key)) };
+        events.push(rejected);
+        break;
+      }
+    }
+    /* 2) changed keys that other tables reference: ON UPDATE rule */
+    const cascadeUpdate = (parent, pcolIdx, map, depth, parentShow, parentMark) => {
+      if (rejected || depth > 8) return;
+      const pcol = DB[parent].cols[pcolIdx];
+      for (const fk of FKS.filter(f => f.parent === parent && f.pcol === pcol)) {
+        const child = rel(fk.child);
+        const cci = DB[fk.child].cols.indexOf(fk.col);
+        const refRows = child.rows.filter(r => r.vals[cci] !== null && map.has(r.vals[cci]));
+        if (!refRows.length) continue;
+        const rule = ruleFor(opts, fk, 'upd');
+        const ev = { fk, rule, before: child, refKeys: new Set(refRows.map(r => r.key)), cci, vals: [...new Set(refRows.map(r => r.vals[cci]))], map, parentBefore: parentShow, parentMark, pci: pcolIdx, upd: true };
+        events.push(ev);
+        if (rule === 'RESTRICT') { rejected = ev; return; }
+        const rows = child.rows.map(r => (ev.refKeys.has(r.key) ? Object.assign({}, r, { vals: r.vals.map((v, j) => (j === cci ? (rule === 'CASCADE' ? map.get(v) : null) : v)) }) : r));
+        ev.after = next(fk.child, rows);
+        if (rule === 'CASCADE') cascadeUpdate(fk.child, cci, map, depth + 1, ev.after, ev.refKeys);
+      }
+    };
+    if (!rejected) {
+      setIdx.forEach(j => {
+        const map = new Map();
+        target0.rows.forEach((r, i) => { if (changed(i, j)) map.set(r.vals[j], newVals[i][j]); });
+        if (map.size) cascadeUpdate(tname, j, map, 0, showChange, new Set(target0.rows.filter((r, i) => changed(i, j)).map(r => r.key)));
+      });
+    }
+  }
+
+  /* ---- one pair of steps per referential action ---- */
+  const fmtVals = vs => vs.map(v => fmtLit(v)).join(', ');
+  for (const ev of events) {
+    const fkLabel = `${ev.fk.child}.${ev.fk.col} → ${ev.fk.parent}.${ev.fk.pcol}`;
+    if (ev.check) {
+      const parent = rel(ev.fk.parent);
+      const pci = DB[ev.fk.parent].cols.indexOf(ev.fk.pcol);
+      push(ctx, 'FK', {
+        crumbLabel: 'FOREIGN KEY', fkKey: `${ev.fk.child}.${ev.fk.col}`, hl: [q.spans.set],
+        left: [tableSpec(parent, { colCls: parent.cols.map((c, j) => (j === pci ? 'chk' : '')) })],
+        right: [{ kind: 'reject', text: `No ${ev.fk.parent}.${ev.fk.pcol} = ${fmtVals(ev.badVals)}` }],
+        caption: `${ev.fk.parent} has no ${ev.fk.pcol} = ${fmtVals(ev.badVals)}: rejected`,
+      });
+      continue;
+    }
+    const label = `${ev.rule} ${ev.fk.child}`;
+    const colCls = ev.before.cols.map((c, j) => (j === ev.cci ? 'fkcol' : ''));
+    const parentSpec = ev.parentBefore ? tableSpec(ev.parentBefore, {
+      colCls: ev.parentBefore.cols.map((c, j) => (j === ev.pci ? 'fkcol' : '')),
+      rowCls: r => (ev.parentMark.has(r.key) ? (ev.upd ? 'target' : 'doomed') : 'pending'),
+      cellCls: (r, i, j) => (ev.upd && ev.parentMark.has(r.key) && j === ev.pci ? 'changed' : ''),
+    }) : null;
+    const withParent = specs => (parentSpec ? [parentSpec].concat(specs) : specs);
+    const n = ev.refKeys.size;
+    push(ctx, 'FK', {
+      crumbLabel: label, fkKey: `${ev.fk.child}.${ev.fk.col}`, hl: [],
+      left: withParent([tableSpec(ev.before, { colCls, rowCls: r => (ev.refKeys.has(r.key) ? 'refd' : ''), mark: r => (ev.refKeys.has(r.key) ? 'ref' : null) })]),
+      right: [placeholder('?')],
+      caption: `${n} ${ev.fk.child} row${n > 1 ? 's' : ''} still point${n > 1 ? '' : 's'} at ${ev.fk.pcol} = ${fmtVals(ev.vals)}`,
+    });
+    let right, caption;
+    if (ev.rule === 'RESTRICT') {
+      right = [{ kind: 'reject', text: `${verb} rejected` }];
+      caption = `RESTRICT: the whole ${verb} is cancelled`;
+    } else if (ev.rule === 'CASCADE') {
+      right = [tableSpec(ev.after, { cls: 'out', cellCls: (r, i, j) => (!isDel && j === ev.cci && ev.refKeys.has(r.key) ? 'changed' : '') })];
+      caption = isDel ? `CASCADE: those ${ev.fk.child} rows are deleted too` : `CASCADE: the references follow the new value`;
+    } else {
+      right = [tableSpec(ev.after, { cls: 'out', cellCls: (r, i, j) => (j === ev.cci && ev.refKeys.has(r.key) ? 'nulled' : '') })];
+      caption = 'SET NULL: the rows stay, the reference becomes NULL';
+    }
+    push(ctx, 'FK', {
+      crumbLabel: label, fkKey: `${ev.fk.child}.${ev.fk.col}`, hl: [],
+      left: withParent([tableSpec(ev.before, { colCls, rowCls: r => (ev.refKeys.has(r.key) ? (ev.rule === 'RESTRICT' ? 'blocked' : ev.rule === 'CASCADE' && isDel ? 'doomed' : 'refd') : ''), mark: r => (ev.refKeys.has(r.key) ? 'ref' : null) })]),
+      right, caption,
+    });
+  }
+
+  /* ---- final state ---- */
+  if (rejected) {
+    push(ctx, 'RESULT', {
+      crumbLabel: 'ROLLBACK', hl: [],
+      left: [], right: touched.map(t => tableSpec(before[t], { tag: 'unchanged' })),
+      caption: 'Rolled back: every table is exactly as before',
+    });
+    return before[tname];
+  }
+  const changedTables = touched.filter(t => cur[t] !== before[t]);
+  push(ctx, 'RESULT', {
+    hl: [],
+    left: changedTables.map(t => tableSpec(before[t], { tag: 'before' })),
+    right: changedTables.map(t => tableSpec(cur[t], { tag: 'after', cls: 'final' })),
+    caption: changedTables.length > 1 ? `${changedTables.length} tables changed` : (changedTables.length ? `${tname} changed` : 'Nothing changed'),
+  });
+  return cur[tname];
+}
+
+if (typeof module !== 'undefined') module.exports = { setDataset, parse, tokenize, buildTrace, SqlError, fmt };
+
+/* =====================================================================
+   UI: renders trace snapshots; all motion is derived from what changed
+   between two consecutive snapshots (same key => same piece of data).
+   ===================================================================== */
+const STAGE_CLS = { 'DELETE': 'del', 'SET': 'upd', 'FK': 'fk', 'FROM': 'from', 'JOIN': 'join', 'WHERE': 'where', 'GROUP BY': 'group', 'SELECT': 'select', 'DISTINCT': 'distinct', 'ORDER BY': 'order', 'RESULT': 'result' };
+const CLOUD = 'M26,22 A49,49 0 0 1 108,22 A69,69 0 0 1 212,22 A57,57 0 0 1 311,22 A67,67 0 0 1 415,22 A53,53 0 0 1 503,22 A44,44 0 0 1 574,22 A32,32 0 0 1 574,80 A61,61 0 0 1 475,80 A70,70 0 0 1 355,80 A80,80 0 0 1 234,80 A69,69 0 0 1 119,80 A58,58 0 0 1 26,80 A32,32 0 0 1 26,22 Z';
+const SPEEDS = { slow: 3400, normal: 2200, fast: 1200 };
+
+const $ = s => document.querySelector(s);
+/* relational-algebra operators get a math font so ⟕ ⟖ ⟗ render everywhere */
+const opsHtml = s => esc(s).replace(/[⋈⟕⟖⟗×]/g, m => `<span class="ra">${m}</span>`);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const ta = $('#sql'), hlPre = $('#hl');
+const state = { rules: {}, trace: null, i: 0, playing: false, timer: null, ds: 0, preset: 'scratch', scratch: {}, err: null, lastRunText: null };
+const presets = () => DATASETS[state.ds].presets;
+
+/* ---------------- editor ---------------- */
+function editorHtml(src, step, err) {
+  const n = src.length;
+  const cls = new Array(n).fill('');
+  const add = (s, e, c) => { for (let i = Math.max(0, s); i < Math.min(n, e); i++) cls[i] += ' ' + c; };
+  const toks = tokenize(src, true);
+  toks.forEach((t, ti) => {
+    if (t.t === 'kw') add(t.s, t.e, 'tk-k');
+    else if (t.t === 'id' && /^(COUNT|AVG|SUM|MIN|MAX)$/i.test(t.v) && toks[ti + 1] && toks[ti + 1].v === '(') add(t.s, t.e, 'tk-f');
+    else if (t.t === 'str') add(t.s, t.e, 'tk-s');
+    else if (t.t === 'num') add(t.s, t.e, 'tk-n');
+    else if (t.t === 'comment') add(t.s, t.e, 'tk-c');
+  });
+  if (step) {
+    const sc = STAGE_CLS[step.stage];
+    (step.hl || []).forEach(sp => sp && add(sp[0], sp[1], 'h-' + sc));
+    (step.hl2 || []).forEach(sp => sp && add(sp[0], sp[1], 'h2'));
+    hlPre.style.setProperty('--hc', `var(--${sc})`);
+    if (step.scopeSpan) { add(0, step.scopeSpan[0], 'dim'); add(step.scopeSpan[1], n, 'dim'); }
+  }
+  if (err && err.s !== undefined) add(err.s, Math.max(err.e, err.s + 1), 'err');
+  let html = '', cur = null, buf = '';
+  const flush = () => { if (buf) html += cur ? `<span class="${cur.trim()}">${esc(buf)}</span>` : esc(buf); buf = ''; };
+  for (let i = 0; i < n; i++) {
+    const c = src[i] === '\n' ? '' : cls[i];
+    if (c !== cur) { flush(); cur = c; }
+    buf += src[i];
+  }
+  flush();
+  if (err && err.s !== undefined && err.s >= n) html += '<span class="err"> </span>';
+  return html + '\n ';
+}
+function paintEditor() {
+  const step = state.trace ? state.trace.steps[state.i] : null;
+  hlPre.innerHTML = editorHtml(ta.value, step, state.err);
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
+/* ---------------- rendering specs ---------------- */
+function renderTable(p) {
+  const nc = p.cols.length, ng = p.ghostCols ? p.ghostCols.length : 0;
+  const hasMark = p.rows.some(r => r.mark || (p.pointer && /\bactive\b/.test(r.cls)));
+  const width = nc + ng;
+  const sizeCls = (width >= 8 ? 'w8' : width >= 6 ? 'w6' : '') + (p.rows.length > 14 ? ' tall' : '');
+  const tmpl = `repeat(${width}, auto)${hasMark ? ' auto' : ''}`;
+  let h = '';
+  p.cols.forEach((c, j) => {
+    h += `<div class="th ${j === 0 ? 'first' : ''} ${c.cls}">${c.q ? `<span class="q">${esc(c.q)}.</span>` : ''}${esc(c.label)}</div>`;
+  });
+  (p.ghostCols || []).forEach(g => { h += `<div class="th ghost">${esc(g.label)}</div>`; });
+  if (hasMark) h += '<div class="th mk"></div>';
+  if (!p.rows.length) h += `<div class="td emptyrow">${esc(p.empty)}</div>`;
+  p.rows.forEach(r => {
+    r.cells.forEach((c, j) => {
+      const last = j === nc - 1 && !ng ? ' lastc' : '';
+      h += `<div class="td ${j === 0 ? 'first' : ''}${last} ${c.num ? 'num' : ''} ${c.nul ? 'null' : ''} ${r.cls} ${c.cls}" data-k="${esc(c.k)}"${c.f ? ` data-f="${esc(c.f)}"` : ''}>${esc(c.v)}</div>`;
+    });
+    (r.ghost || []).forEach(g => { h += `<div class="td ghost ${r.cls}" data-k="${esc(g.k)}"${g.f ? ` data-f="${esc(g.f)}"` : ''}>${esc(g.v)}</div>`; });
+    if (hasMark) {
+      const isPtr = p.pointer && /\bactive\b/.test(r.cls);
+      const m = isPtr ? `◂ ${esc(p.pointer)}` : r.mark === 'yes' ? '✓' : r.mark === 'no' ? '✗' : r.mark === 'dup' ? 'duplicate' : r.mark === 'nomatch' ? 'no match' : r.mark === 'del' ? 'delete' : r.mark === 'ref' ? '◂ refers to it' : '';
+      h += `<div class="td mk ${isPtr ? 'ptr' : r.mark || ''} ${r.cls}">${m}</div>`;
+    }
+  });
+  const gc = p.color !== undefined && p.color !== null ? `gc${p.color}` : '';
+  const title = p.cls && p.cls.includes('group')
+    ? `<span class="gl">${esc(p.title)}</span>`
+    : `<span class="tname ${p.titleHl || ''}">${opsHtml(p.title)}</span>`;
+  return `<div class="panel tbl-panel ${p.cls} ${gc}" data-pk="${esc(p.id)}">
+    <div class="ptitle">${title}${p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ''}${p.tag ? `<span class="tag">${esc(p.tag)}</span>` : ''}${p.note ? `<span class="note">${esc(p.note)}</span>` : ''}</div>
+    <div class="tbl ${sizeCls}" style="grid-template-columns:${tmpl}">${h}</div></div>`;
+}
+function renderGrid(p) {
+  const nb = p.colLabels.length;
+  let h = `<div class="corner">${esc(p.aTitle)} ╲ ${esc(p.bTitle)}</div>`;
+  p.colLabels.forEach(l => { h += `<div class="cl">${String(l).split(' · ').map(esc).join('<br>')}</div>`; });
+  p.rowLabels.forEach((l, i) => {
+    h += `<div class="rl ${i === p.active ? 'on' : ''}">${esc(l)}</div>`;
+    p.cells[i].forEach(s => { h += `<div class="dot ${s} ${i === p.active ? 'on' : ''}">${s === 'p' ? '✓' : s === 'f' ? '✗' : ''}</div>`; });
+  });
+  return `<div class="panel grid-panel" data-pk="grid-${esc(p.id)}">
+    <div class="ptitle"><span>${opsHtml(p.aTitle)} ${opsHtml('×')} ${opsHtml(p.bTitle)}</span></div>
+    <div class="xgrid" style="grid-template-columns:auto repeat(${nb}, auto)">${h}</div></div>`;
+}
+function renderAgg(p) {
+  const gc = p.color !== null && p.color !== undefined ? `gcol gc${p.color}` : '';
+  const chips = p.chips.map((c, i) => `<span class="chip ${c.cls}" style="--i:${i}" data-k="${esc(c.k)}"${c.f ? ` data-f="${esc(c.f)}"` : ''}>${esc(c.v)}</span>`).join('');
+  const res = p.result !== null
+    ? `<div class="agg-res">${p.formula ? `<span class="formula">${esc(p.formula)} =</span>` : ''}<span class="res" data-k="${esc(p.rk)}">${esc(p.result)}</span></div>` : '';
+  return `<div class="panel agg ${gc}" data-pk="agg-${esc(p.id)}">
+    <div class="ptitle">${p.group ? `<span class="gl" style="background:var(--gc);padding:0 .45rem;border-radius:6px;font-family:var(--mono)">${esc(p.group)}</span>` : ''}<span class="fn">${esc(p.title)}</span></div>
+    <div class="chips">${chips || '<span class="note">no values</span>'}</div>${res}</div>`;
+}
+function renderValue(p) {
+  return `<div class="panel value" data-pk="val-${esc(p.k)}"><div class="ptitle"><span>${esc(p.title)}</span><span class="tag">one value</span></div>
+    <div class="vbox" data-k="${esc(p.k)}"${p.f ? ` data-f="${esc(p.f)}"` : ''}>${esc(p.v)}</div></div>`;
+}
+function renderPanel(p) {
+  switch (p.kind) {
+    case 'table': return renderTable(p);
+    case 'grid': return renderGrid(p);
+    case 'agg': return renderAgg(p);
+    case 'value': return renderValue(p);
+    case 'reject': return `<div class="panel reject" data-pk="reject"><div class="rx">✗</div><div>${esc(p.text)}</div></div>`;
+    case 'placeholder': return `<div class="panel ph ${p.label && p.label !== '?' ? 'small' : ''}" data-pk="ph">${esc(p.label === undefined ? '' : p.label)}</div>`;
+    case 'idle': return `<div class="panel ph idle" data-pk="idle">${p.html}</div>`;
+  }
+  return '';
+}
+
+/* ---------------- motion ---------------- */
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function snapshot() {
+  const m = new Map();
+  document.querySelectorAll('#stage [data-k]').forEach(el => {
+    m.set(el.dataset.k, { r: el.getBoundingClientRect(), c: el.className });
+  });
+  const pk = new Set();
+  document.querySelectorAll('#stage [data-pk]').forEach(el => pk.add(el.dataset.pk));
+  return { m, pk };
+}
+const COPY = ['font-family', 'font-size', 'font-weight', 'font-style', 'color', 'background-color', 'background-image',
+  'padding-top', 'padding-right', 'padding-bottom', 'padding-left', 'border-top', 'border-right', 'border-bottom', 'border-left',
+  'border-radius', 'box-shadow', 'text-align', 'line-height', 'font-variant-numeric', 'text-decoration', 'white-space'];
+function animateFrom(old) {
+  const fly = $('#fly');
+  fly.innerHTML = '';
+  if (!old || reduceMotion()) return;
+  const dur = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--dur')) || 600;
+  document.querySelectorAll('#stage [data-pk]').forEach(el => { if (!old.pk.has(el.dataset.pk)) el.classList.add('enter'); });
+  const flights = [];
+  document.querySelectorAll('#stage [data-k]').forEach(el => {
+    const o = old.m.get(el.dataset.k) || (el.dataset.f ? old.m.get(el.dataset.f) : null);
+    if (!o) { if (!el.closest('.enter')) el.classList.add('enter'); return; }
+    for (const s of ['fail', 'pass']) if (el.classList.contains(s) && !o.c.split(/\s+/).includes(s)) el.classList.add('just-' + s);
+    const r = el.getBoundingClientRect();
+    if (!r.width) return;
+    const dx = o.r.left - r.left, dy = o.r.top - r.top;
+    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+    flights.push({ el, r, dx, dy });
+  });
+  /* rows travel together: stagger by destination row, not by cell */
+  const tops = [...new Set(flights.map(f => Math.round(f.r.top)))].sort((a, b) => a - b);
+  flights.forEach(({ el, r, dx, dy }) => {
+    const c = el.cloneNode(true);
+    const cs = getComputedStyle(el);
+    COPY.forEach(p => c.style.setProperty(p, cs.getPropertyValue(p)));
+    c.removeAttribute('data-k'); c.removeAttribute('data-f');
+    c.className = '';
+    const z = el.currentCSSZoom || 1;
+    Object.assign(c.style, { position: 'fixed', zoom: String(z), left: r.left / z + 'px', top: r.top / z + 'px', width: r.width / z + 'px', height: r.height / z + 'px', margin: '0', boxSizing: 'border-box', opacity: cs.opacity < .5 ? '.5' : '1' });
+    fly.appendChild(c);
+    el.style.visibility = 'hidden';
+    const delay = Math.min(tops.indexOf(Math.round(r.top)) * 45, 360);
+    const a = c.animate([
+      { transform: `translate(${dx / z}px, ${dy / z}px)`, boxShadow: '0 6px 18px rgba(0,0,0,.18)' },
+      { transform: 'translate(0,0)', boxShadow: '0 0 0 rgba(0,0,0,0)' },
+    ], { duration: dur, delay, easing: 'cubic-bezier(.25,.8,.25,1)', fill: 'backwards' });
+    a.onfinish = a.oncancel = () => { c.remove(); el.style.visibility = ''; };
+  });
+}
+
+/* ---------------- step rendering ---------------- */
+function renderCrumbs() {
+  const box = $('#crumbs');
+  const t = state.trace;
+  if (!t) { box.innerHTML = `<span class="hint">${state.err ? 'Fix the underlined part, then Run' : 'Run the query to see each step'}</span>`; return; }
+  const cur = t.steps[state.i].crumb;
+  let h = '', lastScope = null;
+  t.crumbs.forEach((c, i) => {
+    if (c.scopeId !== lastScope) {
+      if (lastScope !== null) h += '<span class="scope-sep"></span>';
+      if (c.scopeLabel) h += `<span class="scope-lbl">${esc(c.scopeLabel)}</span>`;
+      else if (lastScope !== null) h += '<span class="scope-lbl">outer</span>';
+      lastScope = c.scopeId;
+    } else h += '<span class="arrow">→</span>';
+    const end = i + 1 < t.crumbs.length ? t.crumbs[i + 1].first : t.steps.length;
+    let dots = '';
+    if (end - c.first > 1) for (let k = c.first; k < end; k++) dots += `<span class="sd ${k === state.i ? 'on' : k < state.i ? 'done' : ''}" data-step="${k}"></span>`;
+    h += `<button class="crumb st-${STAGE_CLS[c.stage]} ${i === cur ? 'now' : i < cur ? 'done' : ''}" data-first="${c.first}" title="Jump to ${esc(c.label)}">${esc(c.label)}${dots ? `<span class="dots">${dots}</span>` : ''}</button>`;
+  });
+  box.innerHTML = h;
+}
+function renderCaption() {
+  const box = $('#caption');
+  const t = state.trace;
+  const s = t ? t.steps[state.i] : null;
+  if (!s || (!s.caption && !s.test)) { box.className = 'caption empty'; box.innerHTML = ''; return; }
+  box.className = 'caption';
+  box.style.setProperty('--c', `var(--${STAGE_CLS[s.stage]})`);
+  const body = s.test ? `<div class="test ${s.testOk ? 'ok' : 'bad'}">${esc(s.test)}</div>` : `<div class="cap">${esc(s.caption)}</div>`;
+  box.innerHTML = `<svg class="cloud" viewBox="0 0 600 100" preserveAspectRatio="none" aria-hidden="true"><path d="${CLOUD}"/></svg>`
+    + '<span class="puff p1"></span><span class="puff p2"></span>' + body;
+}
+function renderIdle() {
+  const all = Object.keys(DB);
+  let names = [];
+  try {
+    tokenize(ta.value, true).forEach(t => {
+      const n = all.find(k => t.t === 'id' && k.toLowerCase() === t.v.toLowerCase());
+      if (n && !names.includes(n)) names.push(n);
+    });
+  } catch (e) { /* ignore */ }
+  if (!names.length) names = all.slice();
+  $('#left .panels').innerHTML = names.map(n => renderTable(tableSpec({
+    rid: `T:${n}`, title: n, cols: DB[n].cols.map(c => ({ name: c })), rows: DB[n].rows.map((v, i) => ({ key: `${n}${i}`, vals: v })),
+  }, {}))).join('');
+  const schema = all.map(n => `<div class="schema-row"><button class="ins tbl-ins" data-ins="${esc(n)}">${esc(n)}</button>(${DB[n].cols.map(c => `<button class="ins" data-ins="${esc(c)}">${esc(c)}</button>`).join(', ')})</div>`).join('');
+  $('#right .panels').innerHTML = `<div class="panel schema" data-pk="schema"><div class="ptitle">${esc(DATASETS[state.ds].name)}</div>${schema}<div class="schema-tip">Click a name to add it to your query</div></div>`;
+}
+function render(animate = true) {
+  const old = animate ? snapshot() : null;
+  const t = state.trace;
+  if (!t) renderIdle();
+  else {
+    const s = t.steps[state.i];
+    $('#left .panels').innerHTML = s.left.map(renderPanel).join('');
+    $('#right .panels').innerHTML = s.right.map(renderPanel).join('');
+  }
+  renderCaption();
+  renderCrumbs();
+  renderFks();
+  paintEditor();
+  renderError();
+  updateControls();
+  fitRegions();
+  animateFrom(old);
+  maybeEgg();
+}
+/* Shrink wide or tall content so nothing needs scrolling on the projector */
+function fitRegions() {
+  const stage = $('#stage');
+  stage.style.gridTemplateColumns = '';
+  const natural = id => {
+    const box = $(id + ' .panels');
+    box.style.zoom = '';
+    let w = 0;
+    box.querySelectorAll(':scope > .panel').forEach(p => { p.style.zoom = ''; w = Math.max(w, p.scrollWidth); });
+    return w;
+  };
+  if (window.innerWidth > 1100) {
+    const wl = natural('#left'), wr = natural('#right');
+    if (wl > $('#left').clientWidth - 12 || wr > $('#right').clientWidth - 12) {
+      /* give the wider side more room, keep the editor usable */
+      stage.style.gridTemplateColumns = `minmax(0, ${Math.max(wl, 300)}fr) minmax(28rem, .8fr) minmax(0, ${Math.max(wr, 300)}fr)`;
+    }
+  }
+  for (const id of ['#left', '#right']) {
+    const region = $(id), box = region.querySelector('.panels');
+    box.style.zoom = '';
+    const avail = region.clientWidth - 12;
+    box.querySelectorAll(':scope > .panel').forEach(p => {
+      p.style.zoom = '';
+      const w = p.scrollWidth;
+      if (w > avail) p.style.zoom = String(Math.max(0.5, avail / w));
+    });
+    const availH = region.clientHeight - 12;
+    const h = box.scrollHeight;
+    if (h > availH) box.style.zoom = String(Math.max(0.55, (availH / h) * 0.97));
+  }
+}
+function renderError() {
+  const box = $('#error');
+  const e = state.err;
+  if (!e) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `${e.clause ? `<span class="ecl">${esc(e.clause)}</span>` : ''}${esc(e.message)}`;
+}
+function updateControls() {
+  const t = state.trace;
+  const n = t ? t.steps.length : 0;
+  $('#prev').disabled = !t || state.i === 0;
+  $('#next').disabled = !t || state.i >= n - 1;
+  $('#play').disabled = !t;
+  $('#play').classList.toggle('playing', state.playing);
+  $('#play').innerHTML = state.playing ? '❚❚ Pause' : '▶▶ Auto';
+}
+
+/* ---------------- foreign-key rules (for UPDATE / DELETE) ---------------- */
+const RULES = ['CASCADE', 'SET NULL', 'RESTRICT'];
+const isDML = () => /^\s*(--[^\n]*\n\s*)*(DELETE|UPDATE)\b/i.test(ta.value);
+const rulesNow = () => (state.rules[state.ds] = state.rules[state.ds] || {});
+function renderFks() {
+  const box = $('#fks');
+  const fks = DATASETS[state.ds].fks || [];
+  if (!isDML() || !fks.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  const s = state.trace ? state.trace.steps[state.i] : null;
+  const opt = (key, kind) => {
+    const v = (rulesNow()[key] || {})[kind] || 'RESTRICT';
+    return `<select data-fk="${esc(key)}" data-kind="${kind}">${RULES.map(r => `<option ${r === v ? 'selected' : ''}>${r}</option>`).join('')}</select>`;
+  };
+  box.innerHTML = '<div class="fk-title">Foreign keys</div>' + fks.map(f => {
+    const key = `${f.child}.${f.col}`;
+    return `<div class="fkrow ${s && s.fkKey === key ? 'on' : ''}"><code>${esc(f.child)}.${esc(f.col)} → ${esc(f.parent)}.${esc(f.pcol)}</code>
+      <label>ON DELETE ${opt(key, 'del')}</label><label>ON UPDATE ${opt(key, 'upd')}</label></div>`;
+  }).join('');
+}
+
+/* ---------------- easter eggs ---------------- */
+function eggContext() {
+  const vals = new Set();
+  let hasNull = false;
+  state.trace.result.rows.forEach(r => r.vals.forEach(v => { if (v === null) hasNull = true; else vals.add(String(v)); }));
+  return { has: v => vals.has(v), hasNull, sql: ta.value };
+}
+function maybeEgg() {
+  const t = state.trace;
+  if (!t || state.eggShown || !$('#eggs').checked || state.i !== t.steps.length - 1) return;
+  const ctx = eggContext();
+  const egg = (DATASETS[state.ds].eggs || []).find(e => { try { return e.when(ctx); } catch (_) { return false; } });
+  if (!egg) return;
+  state.eggShown = true;
+  showEgg(egg.lines);
+}
+function showEgg(lines) {
+  const box = $('#egg');
+  box.innerHTML = '<button class="egg-x" aria-label="Close">×</button>';
+  box.hidden = false;
+  clearTimeout(state.eggTimer);
+  let k = 0;
+  const say = () => {
+    if (k >= lines.length) return;
+    const [who, text] = lines[k];
+    const b = document.createElement('div');
+    b.className = `bubble ${k % 2 ? 'b-right' : 'b-left'}`;
+    b.innerHTML = `<span class="who">${esc(who)}</span><div class="said">${esc(text)}</div>`;
+    box.appendChild(b);
+    k++;
+    state.eggTimer = setTimeout(say, 2600);
+  };
+  say();
+}
+function hideEgg() { clearTimeout(state.eggTimer); $('#egg').hidden = true; $('#egg').innerHTML = ''; }
+
+/* ---------------- actions ---------------- */
+function clauseFromPos(src, pos) {
+  let cl = null;
+  const toks = tokenize(src, true);
+  for (let k = 0; k < toks.length && toks[k].s <= pos; k++) {
+    const t = toks[k];
+    if (t.t !== 'kw') continue;
+    if (['SELECT', 'FROM', 'WHERE', 'HAVING', 'ON'].includes(t.up)) cl = t.up;
+    if (t.up === 'JOIN') cl = 'FROM';
+    if (t.up === 'GROUP') cl = 'GROUP BY';
+    if (t.up === 'ORDER') cl = 'ORDER BY';
+  }
+  return cl;
+}
+function run() {
+  stop();
+  hideEgg();
+  state.eggShown = false;
+  state.dirty = false;
+  try {
+    state.trace = buildTrace(ta.value, { rowByRow: $('#rowbyrow').checked, rules: rulesNow() });
+    state.i = 0;
+    state.err = null;
+    state.lastRunText = ta.value;
+  } catch (e) {
+    state.trace = null;
+    if (!(e instanceof SqlError)) { console.error(e); e = new SqlError('Something unexpected went wrong with this query: ' + e.message, null); }
+    if (!e.clause && e.s !== undefined) e.clause = clauseFromPos(ta.value, e.s);
+    state.err = e;
+  }
+  render();
+}
+function reset() { hideEgg(); stop(); state.trace = null; state.err = null; state.dirty = false; render(); }
+function go(i) {
+  if (!state.trace) return;
+  const n = state.trace.steps.length;
+  i = Math.max(0, Math.min(n - 1, i));
+  if (i === state.i) return;
+  state.i = i;
+  render();
+}
+function stop() { state.playing = false; clearTimeout(state.timer); updateControls(); }
+function tick() {
+  if (!state.playing) return;
+  if (!state.trace || state.i >= state.trace.steps.length - 1) { stop(); return; }
+  go(state.i + 1);
+  state.timer = setTimeout(tick, SPEEDS[$('#speed').value]);
+}
+function togglePlay() {
+  if (!state.trace) return;
+  if (state.playing) { stop(); return; }
+  if (state.i >= state.trace.steps.length - 1) { state.i = 0; render(); }
+  state.playing = true;
+  updateControls();
+  state.timer = setTimeout(tick, 500);
+}
+function loadPreset(k) {
+  state.preset = k;
+  $('#preset').value = String(k);
+  const scratch = k === 'scratch';
+  ta.value = scratch ? (state.scratch[state.ds] || '') : presets()[k][2];
+  if (!scratch && presets()[k][3] && presets()[k][3].rules) {
+    const r = rulesNow();
+    Object.keys(r).forEach(key => delete r[key]);
+    Object.entries(presets()[k][3].rules).forEach(([key, v]) => { r[key] = Object.assign({}, v); });
+  }
+  $('#restore').textContent = scratch ? 'Clear' : 'Restore';
+  $('#restore').title = scratch ? 'Clear your query' : 'Undo your edits to this example';
+  reset();
+  if (scratch) ta.focus();
+}
+function loadDataset(d) {
+  state.ds = d;
+  setDataset(DATASETS[d]);
+  document.documentElement.dataset.ds = DATASETS[d].id;
+  $('#emblem').textContent = DATASETS[d].emoji || '';
+  $('#art').innerHTML = ART[DATASETS[d].id] || '';
+  $('#dataset').value = String(d);
+  let h = '<option value="scratch">✎ Write your own query</option>', group = null;
+  presets().forEach((p, i) => {
+    if (p[0] !== group) { if (group !== null) h += '</optgroup>'; h += `<optgroup label="${esc(p[0])}">`; group = p[0]; }
+    h += `<option value="${i}">${i + 1}. ${esc(p[1])}</option>`;
+  });
+  $('#preset').innerHTML = h + '</optgroup>';
+  loadPreset(state.preset === 'scratch' ? 'scratch' : 0);
+}
+function insertAtCursor(txt) {
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const before = ta.value.slice(0, s);
+  const pad = before && !/[\s(,.]$/.test(before) ? ' ' : '';
+  ta.setRangeText(pad + txt, s, e, 'end');
+  ta.focus();
+  ta.dispatchEvent(new Event('input'));
+}
+
+/* ---------------- wiring ---------------- */
+$('#dataset').innerHTML = DATASETS.map((d, i) => `<option value="${i}">${esc(d.name)}</option>`).join('');
+$('#dataset').addEventListener('change', e => loadDataset(+e.target.value));
+$('#preset').addEventListener('change', e => loadPreset(e.target.value === 'scratch' ? 'scratch' : +e.target.value));
+$('#restore').addEventListener('click', () => {
+  if (state.preset === 'scratch') state.scratch[state.ds] = '';
+  loadPreset(state.preset);
+});
+$('#right').addEventListener('click', e => {
+  const b = e.target.closest('[data-ins]');
+  if (b && !state.trace) insertAtCursor(b.dataset.ins);
+});
+$('#run').addEventListener('click', run);
+$('#reset').addEventListener('click', reset);
+$('#prev').addEventListener('click', () => { stop(); go(state.i - 1); });
+$('#next').addEventListener('click', () => { stop(); go(state.i + 1); });
+$('#play').addEventListener('click', togglePlay);
+$('#fks').addEventListener('change', e => {
+  const sel = e.target.closest('select[data-fk]');
+  if (!sel) return;
+  const r = rulesNow();
+  r[sel.dataset.fk] = Object.assign({}, r[sel.dataset.fk], { [sel.dataset.kind]: sel.value });
+  if (state.trace) run(); else renderFks();
+});
+$('#egg').addEventListener('click', e => { if (e.target.closest('.egg-x')) hideEgg(); });
+$('#crumbs').addEventListener('click', e => {
+  const d = e.target.closest('[data-step]');
+  if (d) { stop(); go(+d.dataset.step); return; }
+  const b = e.target.closest('.crumb');
+  if (b) { stop(); go(+b.dataset.first); }
+});
+$('#rowbyrow').addEventListener('change', () => {
+  if (!state.trace) return;
+  const stage = state.trace.steps[state.i].crumb;
+  run();
+  if (state.trace && state.trace.crumbs[stage]) { state.i = state.trace.crumbs[stage].first; render(false); }
+});
+ta.addEventListener('input', () => {
+  renderFks();
+  if (state.preset === 'scratch') state.scratch[state.ds] = ta.value;
+  if (state.trace || state.err) { stop(); state.trace = null; state.err = null; state.dirty = true; render(false); }
+  else paintEditor();
+});
+ta.addEventListener('keydown', e => {
+  if (e.key === 'Tab') { e.preventDefault(); const s = ta.selectionStart; ta.setRangeText('  ', s, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input')); }
+});
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); return; }
+  if (e.key === 'Escape') { hideEgg(); $('#menu').open = false; ta.blur(); return; }
+  if (document.activeElement === ta || e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+  if (e.target.closest && e.target.closest('summary')) return;
+  if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); stop(); if (!state.trace) run(); else go(state.i + 1); }
+  else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); stop(); go(state.i - 1); }
+  else if (e.key === 'Home') { stop(); go(0); }
+  else if (e.key === 'End') { stop(); if (state.trace) go(state.trace.steps.length - 1); }
+  else if (e.key.toLowerCase() === 'p') togglePlay();
+});
+let scale = 1.35;
+const setScale = v => { scale = Math.max(.8, Math.min(1.8, v)); document.documentElement.style.setProperty('--scale', scale); paintEditor(); fitRegions(); };
+$('#bigger').addEventListener('click', () => setScale(scale + .1));
+$('#smaller').addEventListener('click', () => setScale(scale - .1));
+$('#theme').addEventListener('click', () => {
+  const r = document.documentElement;
+  if (r.hasAttribute('data-fun')) r.removeAttribute('data-fun'); else r.setAttribute('data-fun', 'on');
+  $('#theme').textContent = r.hasAttribute('data-fun') ? 'Plain' : 'Fun';
+  requestAnimationFrame(fitRegions);
+});
+const setMode = m => {
+  document.documentElement.dataset.mode = m;
+  $('#mode').textContent = m === 'dark' ? '☀ Light' : '☾ Dark';
+};
+setMode(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+$('#mode').addEventListener('click', () => setMode(document.documentElement.dataset.mode === 'dark' ? 'light' : 'dark'));
+window.addEventListener('resize', () => { paintEditor(); fitRegions(); });
+
+loadDataset(0);
+
+document.addEventListener('click', e => { const m = $('#menu'); if (m.open && !m.contains(e.target)) m.open = false; });
+
+</script>
+</body>
+</html>
