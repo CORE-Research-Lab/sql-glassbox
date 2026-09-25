@@ -230,7 +230,8 @@ header { min-width: 0; }
 .tbl.w6 .th, .tbl.w6 .td { padding: .28rem .5rem; }
 .tbl.tall { font-size: .8rem; }
 .th, .td { padding: .3rem .7rem; border-right: 1.5px solid var(--line); border-bottom: 1.5px solid var(--line); white-space: nowrap; background: var(--panel); }
-.th { font-weight: 700; background: var(--result-bg); border-top: 1.5px solid var(--line); font-size: .92em; }
+.th { font-weight: 700; background: var(--result-bg); border-top: 1.5px solid var(--line); font-size: .92em; white-space: normal; }
+.th .hn { display: inline-block; width: min-content; min-width: 100%; }
 .th .q { display: block; font-family: var(--mono); font-size: .72em; font-weight: 700; color: var(--active); line-height: 1.1; }
 .th.first, .td.first { border-left: 1.5px solid var(--line); }
 .td.num { text-align: right; }
@@ -378,6 +379,19 @@ header { min-width: 0; }
   --hdr: #243a5c; --hdr-ink: #fff; --hdr-muted: #b8c9e2;
 }
 
+/* Community Library: card-catalogue cream and reading-room green */
+:root[data-fun][data-ds="library"] {
+  --paper: #f6f0e2; --panel: #fffdf6; --ink: #2b2418; --muted: #6f6450; --faint: #ab9f86; --line: #4e4331; --line-soft: #e0d6bf; --result-bg: #efe6d0; --active: #b5541c;
+  --bg: repeating-linear-gradient(180deg, transparent 0 31px, rgba(62, 90, 130, .07) 31px 32px), #f6f0e2;
+  --hdr: #26453a; --hdr-ink: #f8f1de; --hdr-muted: #c9dccf;
+  --display: Georgia, "Times New Roman", serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="library"] {
+  --paper: #15120d; --panel: #221c14; --ink: #f1e6d0; --muted: #c2b394; --faint: #857a63; --line: #a8966f; --line-soft: #3f3526; --result-bg: #33291c; --active: #f0a15c;
+  --bg: radial-gradient(ellipse at 85% 95%, rgba(255, 214, 140, .10), transparent 45%), #15120d;
+  --hdr: #16261f; --hdr-ink: #f1e6d0; --hdr-muted: #a9c3b3;
+}
+
 /* Café: warm paper, espresso ink */
 :root[data-fun][data-ds="cafe"] {
   --paper: #f7efe3; --panel: #fffaf2; --ink: #3b2a20; --muted: #7a6152; --faint: #b19a88;
@@ -522,6 +536,7 @@ header { position: relative; z-index: 2; }
 <header>
   <div class="brand">
     <h1><span id="emblem" aria-hidden="true"></span>SQL, step by step</h1>
+    <p>What a query means, not how a database engine runs it.</p>
   </div>
   <div class="spacer"></div>
   <div class="presets">
@@ -637,6 +652,42 @@ const DATASETS = [
       ['DML', 'UPDATE a key: RESTRICT', `UPDATE Students\nSET sid = 10\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { upd: 'RESTRICT' } } }],
       ['DML', 'UPDATE a plain column', `UPDATE Students\nSET gpa = gpa + 0.1\nWHERE major = 'Math';`, { rules: {} }],
       ['DML', 'Broken foreign key', `UPDATE Takes\nSET sid = 9\nWHERE course = 'CSC148';`, { rules: {} }],
+    ],
+  },
+  {
+    id: 'library', emoji: '📚',
+    name: 'Community Library (Tutorial 4)',
+    colFormats: { replacement_cost: '2dp' },
+    fks: [],
+    tables: {
+      book_copy: {
+        cols: ['book_copy_id', 'title', 'condition', 'acquisition_date', 'replacement_cost', 'owning_branch_name'],
+        rows: [
+          [101, 'The Bell Jar', 'worn', '2019-04-12', 18.5, 'Lakeside'],
+          [102, 'A Brief History of Time', 'good', '2021-11-03', 27, 'Hilltop'],
+          [103, 'Beloved', 'good', '2017-06-22', 22, 'Lakeside'],
+          [104, 'Sapiens', 'new', '2023-02-14', 32, 'Hilltop'],
+          [105, 'The Road', 'damaged', '2018-09-30', 19.99, 'Lakeside'],
+          [106, 'Hyperion', 'worn', '2020-01-08', 24, 'Hilltop'],
+          [107, 'Cosmos', 'good', '2016-05-19', 25, 'Hilltop'],
+          [108, 'Educated', 'new', '2024-08-01', 29.5, 'Lakeside'],
+        ],
+      },
+    },
+    presets: [
+      ['Worked examples', 'The whole table', `SELECT * FROM book_copy;`],
+      ['Worked examples', 'Picking columns', `SELECT title, condition\nFROM book_copy;`],
+      ['Worked examples', 'Picking rows', `SELECT title\nFROM book_copy\nWHERE owning_branch_name = 'Lakeside';`],
+      ['Worked examples', 'AND', `SELECT title\nFROM book_copy\nWHERE acquisition_date >= '2020-01-01'\n  AND condition = 'good';`],
+      ['Worked examples', 'OR', `SELECT title, condition\nFROM book_copy\nWHERE condition = 'worn'\n   OR condition = 'damaged';`],
+      ['Worked examples', 'NOT', `SELECT title\nFROM book_copy\nWHERE NOT (owning_branch_name = 'Lakeside');`],
+      ['Worked examples', 'LIKE', `SELECT title\nFROM book_copy\nWHERE title LIKE 'The %';  -- starts with "The "`],
+      ['Tutorial tasks (write your own)', 'Task 1', `-- Task 1: Return the title and replacement_cost of every copy\n-- that costs more than $25 to replace.\n-- Predict the result first, then write your query below and press Run.\n\n`],
+      ['Tutorial tasks (write your own)', 'Task 2', `-- Task 2: Return the title of every copy owned by the Lakeside\n-- branch that is in good or new condition.\n-- Write it once using OR, then again using IN.\n-- Run one version at a time: put -- in front of the other.\n\n`],
+      ['Tutorial tasks (write your own)', 'Task 3', `-- Task 3: Return the title of every copy acquired between 2018\n-- and 2022, inclusive. Write it once with two comparisons joined\n-- by AND, then again with BETWEEN.\n-- Run one version at a time: put -- in front of the other.\n\n`],
+      ['Tutorial tasks (write your own)', 'Task 4', `-- Task 4 (trickier): Return the title of every copy that is either\n-- in new condition, or owned by Hilltop and acquired in 2021 or later.\n-- Then write a second version with the parentheses placed around\n-- the OR instead. Do both versions return the same rows here?\n-- Are they the same query?\n\n`],
+      ['Common pitfalls', 'Double quotes for text', `SELECT title\nFROM book_copy\nWHERE condition = "new";`],
+      ['Common pitfalls', '= NULL instead of IS NULL', `SELECT title\nFROM book_copy\nWHERE owning_branch_name = NULL;`],
     ],
   },
   {
@@ -936,6 +987,18 @@ const DATASETS = [
    "currentColor" follows the theme's ink so outlines work in light and dark.
    ===================================================================== */
 const ART = {
+  library: `<svg viewBox="0 0 240 160" role="img" aria-label="A bookshelf and a reading lamp">
+    <rect x="24" y="126" width="160" height="10" rx="2" fill="#7a5230" stroke="currentColor" stroke-opacity=".35" stroke-width="2"/>
+    <rect x="34" y="70" width="18" height="56" rx="2" fill="#2f6f5b"/><rect x="54" y="80" width="14" height="46" rx="2" fill="#c0562b"/>
+    <rect x="70" y="64" width="20" height="62" rx="2" fill="#3e5a82"/><rect x="92" y="76" width="16" height="50" rx="2" fill="#e0a526"/>
+    <rect x="110" y="70" width="18" height="56" rx="2" fill="#8a4f7d"/>
+    <rect x="132" y="82" width="16" height="46" rx="2" fill="#5d8f4f" transform="rotate(14 140 126)"/>
+    <g stroke="#fff" stroke-opacity=".45" stroke-width="2"><path d="M38 82h10M38 114h10M74 76h12M74 114h12M114 82h10M114 114h10"/></g>
+    <path d="M196 136 h30" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+    <path d="M211 136 V92 L190 70" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M176 60 l22 -8 l10 26 l-22 8 Z" fill="#2f6f5b" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M186 86 L170 112 L204 100 Z" fill="#ffe7a3" opacity=".55"/>
+  </svg>`,
   uni: `<svg viewBox="0 0 240 160" role="img" aria-label="Books and a graduation cap">
     <rect x="42" y="120" width="150" height="20" rx="3" fill="#3e5a82"/>
     <rect x="52" y="100" width="132" height="20" rx="3" fill="#c0562b"/>
@@ -1039,8 +1102,8 @@ const ART = {
    snapshots; it never evaluates SQL itself.
    ===================================================================== */
 
-let DB = null, FKS = [];
-function setDataset(ds) { DB = ds.tables; FKS = ds.fks || []; }
+let DB = null, FKS = [], COLFMT = {};
+function setDataset(ds) { DB = ds.tables; FKS = ds.fks || []; COLFMT = ds.colFormats || {}; }
 
 class SqlError extends Error {
   constructor(msg, clause, s, e) { super(msg); this.clause = clause || null; this.s = s; this.e = e; }
@@ -1280,8 +1343,31 @@ function parse(src) {
       const nt = next();
       return { type: 'isnull', x: l, neg, s: l.s, e: nt.e };
     }
-    for (const w of ['IN', 'LIKE', 'BETWEEN'])
-      if (isKw(w) || (isKw('NOT') && isKw(w, 1))) err(`${w} is not supported in this tool yet.`);
+    let neg = false;
+    if (isKw('NOT') && (isKw('IN', 1) || isKw('BETWEEN', 1) || isKw('LIKE', 1))) { next(); neg = true; }
+    if (isKw('BETWEEN')) {
+      next();
+      const lo = parseAdd();
+      if (!isKw('AND')) err('BETWEEN needs AND, e.g. x BETWEEN 1 AND 5');
+      next();
+      const hi = parseAdd();
+      return { type: 'between', x: l, lo, hi, neg, s: l.s, e: hi.e };
+    }
+    if (isKw('LIKE')) {
+      next();
+      const pat = parseAdd();
+      return { type: 'like', x: l, pat, neg, s: l.s, e: pat.e };
+    }
+    if (isKw('IN')) {
+      next();
+      if (!isP('(')) err('IN needs a list in parentheses, e.g. IN (\'good\', \'new\')');
+      next();
+      if (isKw('SELECT')) err('IN (SELECT …) is not supported in this tool yet. Use a list of values.');
+      const list = [];
+      for (;;) { list.push(parseAdd()); if (isP(',')) { next(); continue; } break; }
+      const close = expectP(')');
+      return { type: 'in', x: l, list, neg, s: l.s, e: close.e };
+    }
     return l;
   }
   function parseAdd() {
@@ -1408,6 +1494,8 @@ function parse(src) {
   if (isP(';')) next();
   if (peek().t !== 'eof') {
     const t = peek();
+    if (t.t === 'kw' && ['SELECT', 'UPDATE', 'DELETE'].includes(t.up) && toks[p - 1] && toks[p - 1].v === ';')
+      throw new SqlError('Only one statement runs at a time. Put -- in front of the other version (or delete it), then Run.', null, t.s, t.e);
     if (t.t === 'kw' && ['WHERE', 'GROUP', 'ORDER', 'FROM', 'SELECT', 'DISTINCT'].includes(t.up)) {
       const cl = t.up === 'GROUP' ? 'GROUP BY' : t.up === 'ORDER' ? 'ORDER BY' : t.up;
       throw new SqlError(`${cl} is out of place. Clauses go in this order: SELECT, FROM, WHERE, GROUP BY, ORDER BY.`, cl, t.s, t.e);
@@ -1423,7 +1511,7 @@ function fmt(v, kind) {
   if (v === null || v === undefined) return 'NULL';
   if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
   if (typeof v === 'number') {
-    if (kind === 'avg') return v.toFixed(2);
+    if (kind === 'avg' || kind === '2dp') return v.toFixed(2);
     if (Number.isInteger(v)) return String(v);
     return String(Math.round(v * 10000) / 10000);
   }
@@ -1435,12 +1523,22 @@ const typeName = v => (typeof v === 'number' ? 'number' : typeof v === 'string' 
 /* ---------------- Evaluation ---------------- */
 let CUR = { clause: null };
 
+/* child expressions of a node (subqueries are not entered) */
+function kids(n) {
+  switch (n.type) {
+    case 'bin': return [n.l, n.r];
+    case 'not': case 'neg': case 'isnull': return [n.x];
+    case 'in': return [n.x].concat(n.list);
+    case 'between': return [n.x, n.lo, n.hi];
+    case 'like': return [n.x, n.pat];
+    case 'agg': return n.arg === '*' ? [] : [n.arg];
+  }
+  return [];
+}
 function walk(n, f) {
   if (!n || n === '*') return;
   f(n);
-  if (n.type === 'bin') { walk(n.l, f); walk(n.r, f); }
-  else if (n.type === 'not' || n.type === 'neg' || n.type === 'isnull') walk(n.x, f);
-  else if (n.type === 'agg') walk(n.arg, f);
+  kids(n).forEach(k => walk(k, f));
 }
 function hasAgg(n) { let h = false; walk(n, x => { if (x.type === 'agg') h = true; }); return h; }
 
@@ -1452,6 +1550,30 @@ function evalE(n, row, grp) {
     case 'neg': { const v = evalE(n.x, row, grp); if (v === null) return null; needNum(v, n); return -v; }
     case 'not': { const v = evalE(n.x, row, grp); return v === null ? null : !v; }
     case 'isnull': { const v = evalE(n.x, row, grp); return n.neg ? v !== null : v === null; }
+    case 'between': {
+      const v = evalE(n.x, row, grp), lo = evalE(n.lo, row, grp), hi = evalE(n.hi, row, grp);
+      if (v === null || lo === null || hi === null) return null;
+      sameType(v, lo, n); sameType(v, hi, n);
+      const r = v >= lo && v <= hi;
+      return n.neg ? !r : r;
+    }
+    case 'in': {
+      const v = evalE(n.x, row, grp);
+      if (v === null) return null;
+      let sawNull = false, hit = false;
+      n.list.forEach(it => { const w = evalE(it, row, grp); if (w === null) sawNull = true; else { sameType(v, w, n); if (w === v) hit = true; } });
+      if (hit) return !n.neg;
+      if (sawNull) return null;
+      return n.neg;
+    }
+    case 'like': {
+      const v = evalE(n.x, row, grp), p = evalE(n.pat, row, grp);
+      if (v === null || p === null) return null;
+      if (typeof v !== 'string' || typeof p !== 'string') throw new SqlError('LIKE compares text with a text pattern', CUR.clause, n.s, n.e);
+      const re = new RegExp('^' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.') + '$', 's');
+      const r = re.test(v);
+      return n.neg ? !r : r;
+    }
     case 'agg': return aggregate(n, grp).value;
     case 'bin': {
       if (n.op === 'AND') {
@@ -1476,8 +1598,7 @@ function evalE(n, row, grp) {
         if (b === 0) throw new SqlError('Division by zero', CUR.clause, n.s, n.e);
         return a / b;
       }
-      if (typeof a !== typeof b)
-        throw new SqlError(`Can't compare ${fmtLit(a)} (${typeName(a)}) with ${fmtLit(b)} (${typeName(b)})`, CUR.clause, n.s, n.e);
+      sameType(a, b, n);
       switch (n.op) {
         case '=': return a === b;
         case '<>': return a !== b;
@@ -1489,6 +1610,12 @@ function evalE(n, row, grp) {
     }
   }
   throw new SqlError('Unsupported expression', CUR.clause, n.s, n.e);
+}
+const isDate = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+function sameType(a, b, n) {
+  if (typeof a === typeof b) return;
+  const hint = (isDate(a) || isDate(b)) ? ' Dates are written in quotes as \'YYYY-MM-DD\', e.g. \'2020-01-01\'.' : '';
+  throw new SqlError(`Can't compare ${fmtLit(a)} (${typeName(a)}) with ${fmtLit(b)} (${typeName(b)}).${hint}`, CUR.clause, n.s, n.e);
 }
 function needNum(v, n) {
   if (typeof v !== 'number') throw new SqlError(`Arithmetic needs numbers, but ${fmtLit(v)} is ${typeName(v)}`, CUR.clause, n.s, n.e);
@@ -1553,7 +1680,7 @@ function tableSpec(rel, o = {}) {
     cls: (o.rowCls && o.rowCls(r, i)) || '',
     mark: (o.mark && o.mark(r, i)) || null,
     cells: r.vals.map((v, j) => ({
-      v: fmt(v, rel.fmts && rel.fmts[j]),
+      v: fmt(v, (rel.fmts && rel.fmts[j]) || COLFMT[String(rel.cols[j].name).toLowerCase()]),
       k: ck(rel, r, j),
       f: r.src ? r.src[j] : null,
       cls: [(o.colCls && o.colCls[j]) || '', (o.cellCls && o.cellCls(r, i, j)) || ''].join(' ').trim(),
@@ -1583,6 +1710,9 @@ function substText(src, n, row) {
     case 'neg': return wrap('-' + substText(src, n.x, row));
     case 'not': return wrap('NOT ' + substText(src, n.x, row));
     case 'isnull': return wrap(`${substText(src, n.x, row)} IS ${n.neg ? 'NOT ' : ''}NULL`);
+    case 'between': return wrap(`${substText(src, n.x, row)} ${n.neg ? 'NOT ' : ''}BETWEEN ${substText(src, n.lo, row)} AND ${substText(src, n.hi, row)}`);
+    case 'in': return wrap(`${substText(src, n.x, row)} ${n.neg ? 'NOT ' : ''}IN (${n.list.map(x => substText(src, x, row)).join(', ')})`);
+    case 'like': return wrap(`${substText(src, n.x, row)} ${n.neg ? 'NOT ' : ''}LIKE ${substText(src, n.pat, row)}`);
     case 'agg': return wrap(src.slice(n.s, n.e));
     case 'bin': return wrap(`${substText(src, n.l, row)} ${n.op} ${substText(src, n.r, row)}`);
   }
@@ -1717,7 +1847,7 @@ function traceQuery(q, ctx) {
         if (inAgg) throw E(clause, 'An aggregate cannot be nested inside another aggregate', x);
         inAgg++; rec(x.arg); inAgg--;
       } else if (x.type === 'bin') { rec(x.l); rec(x.r); }
-      else if (x.type === 'not' || x.type === 'neg' || x.type === 'isnull') rec(x.x);
+      else kids(x).forEach(rec);
     })(n);
   }
 
@@ -1769,7 +1899,7 @@ function traceQuery(q, ctx) {
         if (!q.groupBy.length) throw E(clause, `"${text(src, x)}" can't sit next to an aggregate without GROUP BY: the aggregate collapses all rows into one, so which ${x.name} would it show?`, x);
         throw E(clause, `"${text(src, x)}" must appear in GROUP BY or be inside an aggregate like COUNT(…).`, x);
       }
-      if (x.type === 'bin') { rec(x.l); rec(x.r); } else if (x.type === 'not' || x.type === 'neg' || x.type === 'isnull') rec(x.x);
+      kids(x).forEach(rec);
     })(n);
   };
   if (isAgg) q.selectItems.forEach(s => checkGrouped(s.expr, 'SELECT'));
@@ -2371,7 +2501,7 @@ function traceDML(q, ctx) {
       }
     });
     let hasSub = false;
-    (function rec(x) { if (!x || x === '*') return; if (x.type === 'sub') hasSub = true; if (x.type === 'bin') { rec(x.l); rec(x.r); } else if (x.x) rec(x.x); })(n);
+    (function rec(x) { if (!x || x === '*') return; if (x.type === 'sub') hasSub = true; kids(x).forEach(rec); })(n);
     if (hasSub) throw new SqlError('Subqueries inside UPDATE/DELETE are not supported in this tool.', clause, n.s, n.e);
   }
   if (q.where) bindT(q.where, 'WHERE');
@@ -2646,7 +2776,7 @@ function renderTable(p) {
   const tmpl = `repeat(${width}, auto)${hasMark ? ' auto' : ''}`;
   let h = '';
   p.cols.forEach((c, j) => {
-    h += `<div class="th ${j === 0 ? 'first' : ''} ${c.cls}">${c.q ? `<span class="q">${esc(c.q)}.</span>` : ''}${esc(c.label)}</div>`;
+    h += `<div class="th ${j === 0 ? 'first' : ''} ${c.cls}">${c.q ? `<span class="q">${esc(c.q)}.</span>` : ''}<span class="hn">${esc(c.label).replace(/_/g, '_<wbr>')}</span></div>`;
   });
   (p.ghostCols || []).forEach(g => { h += `<div class="th ghost">${esc(g.label)}</div>`; });
   if (hasMark) h += '<div class="th mk"></div>';
@@ -2836,7 +2966,7 @@ function fitRegions() {
     const box = $(id + ' .panels');
     box.style.zoom = '';
     let w = 0;
-    box.querySelectorAll(':scope > .panel').forEach(p => { p.style.zoom = ''; w = Math.max(w, p.scrollWidth); });
+    box.querySelectorAll(':scope > .panel').forEach(p => { p.style.zoom = ''; w = Math.max(w, p.classList.contains('ph') ? 280 : p.scrollWidth); });
     return w;
   };
   if (window.innerWidth > 1100) {
