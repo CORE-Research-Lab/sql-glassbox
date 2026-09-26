@@ -20,6 +20,8 @@
   --del: #c62828;     --del-bg: #fde3e1;
   --upd: #b85c00;     --upd-bg: #fdebd6;
   --fk: #5b6ee1;      --fk-bg: #e5e9fc;
+  --ddl: #0d7a5f;     --ddl-bg: #d8f1e8;
+  --con: #7a5af5;     --con-bg: #ebe6fe;
   --where: #b57b00;   --where-bg: #fff0bf;  --where-bg2: #ffd95e;
   --select: #1f7f4a;  --select-bg: #d9f2e2;
   --group: #7650c4;   --group-bg: #ebe3fa;
@@ -47,7 +49,7 @@
   --distinct: #f08cb5; --distinct-bg: #4a2033;
   --order: #6fd0d8; --order-bg: #143d42;
   --result: #c3cce0; --result-bg: #2a3346;
-  --del: #ff8a80; --del-bg: #4a1c1c; --upd: #ffb45e; --upd-bg: #4a2e10; --fk: #9fb0ff; --fk-bg: #262f5c;
+  --ddl: #5fd3ad; --ddl-bg: #13392e; --con: #b3a1ff; --con-bg: #2e2657; --del: #ff8a80; --del-bg: #4a1c1c; --upd: #ffb45e; --upd-bg: #4a2e10; --fk: #9fb0ff; --fk-bg: #262f5c;
   --active: #ff9a3d; --pass: #6fd39a; --fail: #ff7b6b;
   --g0: #4d4118; --g1: #1f3656; --g2: #4d2437; --g3: #1d4128; --g4: #372a56; --g5: #17403f;
   --tk-k: #e38ad3; --tk-f: #ffab6e; --tk-s: #7fdca6; --tk-n: #ffab6e;
@@ -123,6 +125,8 @@ header { min-width: 0; }
 .scope-sep { flex-basis: 100%; height: 0; }
 .st-from { --c: var(--from); --cbg: var(--from-bg); }
 .st-join { --c: var(--join); --cbg: var(--join-bg); }
+.st-ddl { --c: var(--ddl); --cbg: var(--ddl-bg); }
+.st-con { --c: var(--con); --cbg: var(--con-bg); }
 .st-del { --c: var(--del); --cbg: var(--del-bg); }
 .st-upd { --c: var(--upd); --cbg: var(--upd-bg); }
 .st-fk { --c: var(--fk); --cbg: var(--fk-bg); }
@@ -144,17 +148,19 @@ header { min-width: 0; }
 
 /* ---------- centre ---------- */
 #centre { display: flex; flex-direction: column; gap: .7rem; min-height: 0; overflow: auto; padding: .2rem; }
+#centre > * { flex-shrink: 0; }
 .runrow { display: flex; gap: .5rem; }
 .editor {
   position: relative; border: 2px solid var(--line-soft); border-radius: 10px; background: var(--panel);
   font-family: var(--mono); font-size: 1.05rem; line-height: 1.55; flex: none;
+  max-height: 42vh; overflow: auto; scrollbar-width: thin;
 }
 .editor:focus-within { border-color: var(--from); }
 .editor pre, .editor textarea {
   margin: 0; padding: .7rem .85rem; font: inherit; line-height: inherit; white-space: pre-wrap; overflow-wrap: break-word;
   word-break: normal; tab-size: 2; border: 0; width: 100%; letter-spacing: 0;
 }
-.editor pre { position: absolute; inset: 0; pointer-events: none; overflow: hidden; color: var(--ink); }
+.editor pre { position: absolute; top: 0; left: 0; right: 0; min-height: 100%; pointer-events: none; overflow: visible; color: var(--ink); }
 .editor textarea {
   position: relative; display: block; resize: none; background: transparent; color: transparent; caret-color: var(--ink);
   outline: none; overflow: hidden; min-height: 5rem;
@@ -168,6 +174,9 @@ header { min-width: 0; }
 .editor .dim { opacity: .32; }
 .editor [class*="h-"] { border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .editor .h-from { background: var(--from-bg); box-shadow: inset 0 -3px 0 var(--from); }
+.editor .h-ddl { background: var(--ddl-bg); box-shadow: inset 0 -3px 0 var(--ddl); }
+.editor .h-con { background: var(--con-bg); box-shadow: inset 0 -3px 0 var(--con); }
+.editor .h-fk { background: var(--fk-bg); box-shadow: inset 0 -3px 0 var(--fk); }
 .editor .h-del { background: var(--del-bg); box-shadow: inset 0 -3px 0 var(--del); }
 .editor .h-upd { background: var(--upd-bg); box-shadow: inset 0 -3px 0 var(--upd); }
 .editor .h-join { background: var(--join-bg); box-shadow: inset 0 -3px 0 var(--join); }
@@ -530,13 +539,57 @@ header { position: relative; z-index: 2; }
 .fkrow select { font-family: var(--mono); font-size: .8rem; border: 1px solid var(--line-soft); border-radius: 5px; background: var(--panel); color: var(--ink); padding: .1rem .2rem; }
 .fkrow.on { background: var(--fk-bg); box-shadow: inset 4px 0 0 var(--fk); }
 
+/* ---------- DDL: table cards ---------- */
+.ddl-card { background: var(--panel); border: 2px solid var(--line-soft); border-radius: 12px; padding: .55rem .8rem .7rem; min-width: 18rem; }
+.ddl-card.hot { border-color: var(--ddl); box-shadow: 0 0 0 3px var(--ddl-bg); }
+.dc-grid { display: grid; grid-template-columns: auto auto 1fr; gap: .25rem .7rem; align-items: center; font-size: 1rem; }
+.dc-name { font-weight: 700; white-space: nowrap; }
+.dc-name.is-key { text-decoration: underline; text-underline-offset: 3px; }
+.dc-type { font-family: var(--mono); font-size: .85em; color: var(--muted); white-space: nowrap; }
+.dc-bdg { display: flex; flex-wrap: wrap; gap: .25rem; min-height: 1.4rem; }
+.dc-name.hot, .dc-type.hot, .dc-bdg.hot { background: var(--ddl-bg); border-radius: 5px; }
+.dc-name.hot { padding-left: .25rem; box-shadow: inset 3px 0 0 var(--ddl); }
+.dc-extra { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .45rem; padding-top: .4rem; border-top: 1px dashed var(--line-soft); }
+.bdg { font-family: var(--mono); font-size: .72rem; font-weight: 700; border-radius: 5px; padding: .08rem .38rem; white-space: nowrap; border: 1.5px solid; }
+.b-pk { color: #7a5200; background: #fde7a8; border-color: #e0a526; }
+.b-nn { color: var(--ink); background: var(--result-bg); border-color: var(--line-soft); }
+.b-implied { opacity: .6; border-style: dashed; }
+.b-uq { color: var(--order); background: var(--order-bg); border-color: var(--order); }
+.b-df { color: var(--muted); background: var(--panel); border-color: var(--line-soft); }
+.b-ck { color: var(--con); background: var(--con-bg); border-color: var(--con); }
+.b-fk { color: var(--fk); background: var(--fk-bg); border-color: var(--fk); }
+:root[data-mode="dark"] .b-pk { color: #ffe08a; background: #4a3a10; }
+.bnew { animation: pop-in .45s cubic-bezier(.2, 1.3, .4, 1) both; }
+
+/* ---------- DDL: Chen ERD ---------- */
+.erd-panel { background: var(--panel); border: 2px solid var(--line-soft); border-radius: 12px; padding: .55rem .7rem; }
+.erd { display: block; width: 100%; height: auto; max-height: calc(100vh - 12rem); }
+.erd-panel { width: 100%; box-sizing: border-box; }
+.erd text { font-family: var(--sans); font-size: 18px; fill: var(--ink); text-anchor: middle; }
+.erd .ent rect { fill: var(--panel); stroke: var(--ink); stroke-width: 2.2; }
+.erd .ent text { font-weight: 700; font-size: 21px; }
+.erd .ent.hot rect { stroke: var(--ddl); stroke-width: 3.2; }
+.erd .attr ellipse { fill: var(--panel); stroke: var(--muted); stroke-width: 1.8; }
+.erd .attr.hot ellipse { stroke: var(--ddl); }
+.erd .ul { stroke: var(--ink); stroke-width: 1.6; }
+.erd .ul.dash { stroke-dasharray: 4 3; }
+.erd .rel polygon { fill: var(--fk-bg); stroke: var(--fk); stroke-width: 2.2; }
+.erd .rel polygon.inner { fill: none; }
+.erd .rel text { font-weight: 700; font-size: 17px; }
+.erd .l-attr, .erd .l-attr line { stroke: var(--muted); stroke-width: 1.6; }
+.erd .l-rel, .erd .l-rel line { stroke: var(--ink); stroke-width: 2; }
+.erd text.card { font-family: var(--mono); font-weight: 800; font-size: 20px; fill: var(--fk); }
+.erd .pop { animation: erd-pop .5s cubic-bezier(.2, 1.3, .4, 1) both; transform-box: fill-box; transform-origin: center; }
+@keyframes erd-pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+.erd-legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .72rem; color: var(--muted); margin-top: .35rem; }
+@media (prefers-reduced-motion: reduce) { .erd .pop, .bnew { animation: none; } }
+
 </style>
 </head>
 <body>
 <header>
   <div class="brand">
     <h1><span id="emblem" aria-hidden="true"></span>SQL, step by step</h1>
-    <p>What a query means, not how a database engine runs it.</p>
   </div>
   <div class="spacer"></div>
   <div class="presets">
@@ -652,6 +705,13 @@ const DATASETS = [
       ['DML', 'UPDATE a key: RESTRICT', `UPDATE Students\nSET sid = 10\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { upd: 'RESTRICT' } } }],
       ['DML', 'UPDATE a plain column', `UPDATE Students\nSET gpa = gpa + 0.1\nWHERE major = 'Math';`, { rules: {} }],
       ['DML', 'Broken foreign key', `UPDATE Takes\nSET sid = 9\nWHERE course = 'CSC148';`, { rules: {} }],
+      ['DDL', 'One table with all constraints', `CREATE TABLE Students (\n  sid   INT PRIMARY KEY,\n  name  VARCHAR(30) NOT NULL,\n  email VARCHAR(40) UNIQUE,\n  major VARCHAR(10) DEFAULT 'Undeclared',\n  gpa   NUMERIC(3,2)\n        CHECK (gpa BETWEEN 0 AND 4)\n);`],
+      ['DDL', 'Constraints at the table level', `CREATE TABLE Courses (\n  course  VARCHAR(10),\n  credits INT NOT NULL,\n  CONSTRAINT course_pk\n    PRIMARY KEY (course),\n  CONSTRAINT credits_ok\n    CHECK (credits > 0)\n);`],
+      ['DDL', 'Three tables and a M:N relationship', `CREATE TABLE Students (\n  sid  INT PRIMARY KEY,\n  name VARCHAR(30) NOT NULL,\n  gpa  NUMERIC(3,2)\n);\n\nCREATE TABLE Courses (\n  course  VARCHAR(10) PRIMARY KEY,\n  credits INT NOT NULL DEFAULT 4\n);\n\nCREATE TABLE Takes (\n  sid    INT REFERENCES Students\n           ON DELETE CASCADE,\n  course VARCHAR(10) REFERENCES Courses,\n  PRIMARY KEY (sid, course)\n);`],
+      // Issue with rendering the diagram ['DDL', 'Recursive relationship', `CREATE TABLE Instructors (\n  iid    INT PRIMARY KEY,\n  name   VARCHAR(30) NOT NULL,\n  dept   VARCHAR(10),\n  mentor INT\n    CONSTRAINT mentors\n    REFERENCES Instructors(iid)\n);`],
+      ['DDL', 'Oops: Tables in the wrong order', `-- Try it: this one has a mistake.\nCREATE TABLE Takes (\n  sid    INT REFERENCES Students,\n  course VARCHAR(10),\n  PRIMARY KEY (sid, course)\n);\n\nCREATE TABLE Students (\n  sid  INT PRIMARY KEY,\n  name VARCHAR(30)\n);`],
+      ['DDL', 'Oops: Two primary keys', `-- Try it: this one has a mistake.\nCREATE TABLE Takes (\n  sid    INT PRIMARY KEY,\n  course VARCHAR(10) PRIMARY KEY\n);`],
+      ['DDL', 'Oops: Types don\'t match', `-- Try it: this one has a mistake.\nCREATE TABLE Courses (\n  course VARCHAR(10) PRIMARY KEY\n);\n\nCREATE TABLE Takes (\n  sid    INT,\n  course INT REFERENCES Courses\n);`],
     ],
   },
   {
@@ -688,6 +748,7 @@ const DATASETS = [
       ['Tutorial tasks (write your own)', 'Task 4', `-- Task 4 (trickier): Return the title of every copy that is either\n-- in new condition, or owned by Hilltop and acquired in 2021 or later.\n-- Then write a second version with the parentheses placed around\n-- the OR instead. Do both versions return the same rows here?\n-- Are they the same query?\n\n`],
       ['Common pitfalls', 'Double quotes for text', `SELECT title\nFROM book_copy\nWHERE condition = "new";`],
       ['Common pitfalls', '= NULL instead of IS NULL', `SELECT title\nFROM book_copy\nWHERE owning_branch_name = NULL;`],
+      ['DDL', 'Community Library schema (sketch)', `-- A sketch of the Community Library tables\n-- (not the official Tutorial3-SQL.ddl).\nCREATE TABLE Branch (\n  name    VARCHAR(30) PRIMARY KEY,\n  address VARCHAR(60) NOT NULL\n);\n\nCREATE TABLE book_copy (\n  book_copy_id INT PRIMARY KEY,\n  title        VARCHAR(60) NOT NULL,\n  condition    VARCHAR(10)\n    CHECK (condition IN\n      ('new', 'good', 'worn', 'damaged')),\n  replacement_cost NUMERIC(6,2)\n    CHECK (replacement_cost > 0),\n  owning_branch_name VARCHAR(30)\n    NOT NULL\n    CONSTRAINT owned_by REFERENCES Branch\n);\n\nCREATE TABLE Member (\n  member_id INT PRIMARY KEY,\n  name      VARCHAR(40) NOT NULL,\n  email     VARCHAR(60) UNIQUE\n);\n\nCREATE TABLE Fine (\n  member_id INT\n    CONSTRAINT owes REFERENCES Member\n    ON DELETE CASCADE,\n  fine_no   INT,\n  amount    NUMERIC(5,2) NOT NULL\n              CHECK (amount > 0),\n  PRIMARY KEY (member_id, fine_no)\n);`],
     ],
   },
   {
@@ -733,6 +794,7 @@ const DATASETS = [
       ['DML', 'Take empanadas off the menu: CASCADE', `DELETE FROM Menu\nWHERE item = 'Empanada';`, { rules: { 'Orders.item': { del: 'CASCADE' } } }],
       ['DML', 'Take empanadas off the menu: RESTRICT', `DELETE FROM Menu\nWHERE item = 'Empanada';`, { rules: { 'Orders.item': { del: 'RESTRICT' } } }],
       ['DML', 'Rename an item: ON UPDATE CASCADE', `UPDATE Menu\nSET item = 'Iced matcha'\nWHERE item = 'Matcha latte';`, { rules: { 'Orders.item': { upd: 'CASCADE' } } }],
+      ['DDL', 'Café schema', `CREATE TABLE Menu (\n  item     VARCHAR(30) PRIMARY KEY,\n  category VARCHAR(10) NOT NULL,\n  price    NUMERIC(4,2)\n             CHECK (price > 0)\n);\n\nCREATE TABLE Customers (\n  customer VARCHAR(20) PRIMARY KEY,\n  city     VARCHAR(20)\n);\n\nCREATE TABLE Orders (\n  oid      INT PRIMARY KEY,\n  customer VARCHAR(20) NOT NULL\n    CONSTRAINT placed_by\n    REFERENCES Customers,\n  item     VARCHAR(30) NOT NULL\n    CONSTRAINT ordered\n    REFERENCES Menu,\n  qty      INT DEFAULT 1\n             CHECK (qty >= 1)\n);`],
     ],
   },
   {
@@ -908,6 +970,7 @@ const DATASETS = [
       ['DML', 'Tatooine: CASCADE chain', `DELETE FROM Planets\nWHERE planet = 'Tatooine';`, { rules: { 'Characters.homeworld': { del: 'CASCADE' }, 'Flies.cid': { del: 'CASCADE' } } }],
       ['DML', 'Mixed rules: CASCADE then RESTRICT', `DELETE FROM Planets\nWHERE planet = 'Tatooine';`, { rules: { 'Characters.homeworld': { del: 'CASCADE' }, 'Flies.cid': { del: 'RESTRICT' } } }],
       ['DML', 'Rename the Falcon: ON UPDATE CASCADE', `UPDATE Ships\nSET ship = 'The Falcon'\nWHERE ship = 'Millennium Falcon';`, { rules: { 'Flies.ship': { upd: 'CASCADE' } } }],
+      ['DDL', 'Star Wars schema', `CREATE TABLE Planets (\n  planet  VARCHAR(20) PRIMARY KEY,\n  climate VARCHAR(20)\n);\n\nCREATE TABLE Characters (\n  cid       INT PRIMARY KEY,\n  name      VARCHAR(30) NOT NULL,\n  species   VARCHAR(20),\n  homeworld VARCHAR(20)\n    REFERENCES Planets\n    ON DELETE SET NULL,\n  side      VARCHAR(5)\n    CHECK (side IN ('light', 'dark'))\n);\n\nCREATE TABLE Ships (\n  ship  VARCHAR(30) PRIMARY KEY,\n  class VARCHAR(30)\n);\n\nCREATE TABLE Flies (\n  cid  INT REFERENCES Characters\n         ON DELETE CASCADE,\n  ship VARCHAR(30) REFERENCES Ships,\n  PRIMARY KEY (cid, ship)\n);`],
     ],
   },
   {
@@ -1113,7 +1176,12 @@ class SqlError extends Error {
 const KW = new Set(['SELECT', 'DISTINCT', 'ALL', 'FROM', 'WHERE', 'GROUP', 'BY', 'ORDER', 'ASC', 'DESC',
   'AND', 'OR', 'NOT', 'AS', 'HAVING', 'NULL', 'IS', 'IN', 'LIKE', 'JOIN', 'INNER', 'LEFT', 'RIGHT',
   'OUTER', 'ON', 'LIMIT', 'UNION', 'INTERSECT', 'EXCEPT', 'BETWEEN', 'EXISTS', 'CROSS', 'NATURAL',
-  'OFFSET', 'CASE', 'WITH', 'TRUE', 'FALSE', 'FULL', 'USING', 'DELETE', 'UPDATE', 'SET', 'INSERT', 'INTO', 'VALUES']);
+  'OFFSET', 'CASE', 'WITH', 'TRUE', 'FALSE', 'FULL', 'USING', 'DELETE', 'UPDATE', 'SET', 'INSERT', 'INTO', 'VALUES',
+  'CREATE', 'TABLE', 'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES', 'CONSTRAINT', 'UNIQUE', 'CHECK', 'DEFAULT',
+  'CASCADE', 'RESTRICT', 'NO', 'ACTION', 'DROP', 'ALTER']);
+const TYPES = { INT: 'number', INTEGER: 'number', SMALLINT: 'number', BIGINT: 'number', SERIAL: 'number', NUMERIC: 'number', DECIMAL: 'number',
+  REAL: 'number', FLOAT: 'number', 'DOUBLE PRECISION': 'number', VARCHAR: 'text', CHAR: 'text', CHARACTER: 'text', TEXT: 'text',
+  DATE: 'date', TIME: 'date', TIMESTAMP: 'date', BOOLEAN: 'boolean', BOOL: 'boolean' };
 const AGG = new Set(['COUNT', 'AVG', 'SUM', 'MIN', 'MAX']);
 
 function tokenize(src, lenient) {
@@ -1486,6 +1554,116 @@ function parse(src) {
     parseWhereOpt(q);
     return q;
   }
+  /* ---- DDL: one or more CREATE TABLE statements ---- */
+  function parseIdent(what) { const t = peek(); if (t.t !== 'id') err(`Expected ${what} but found ${desc(t)}`); next(); return t; }
+  function parseNameList() {
+    expectP('(');
+    const out = [];
+    for (;;) { out.push(parseIdent('a column name')); if (isP(',')) { next(); continue; } break; }
+    expectP(')');
+    return out;
+  }
+  function parseRules(fk) {
+    while (isKw('ON')) {
+      next();
+      let kind;
+      if (isKw('DELETE')) kind = 'del'; else if (isKw('UPDATE')) kind = 'upd'; else err('Expected ON DELETE or ON UPDATE');
+      next();
+      let rule;
+      if (isKw('CASCADE')) { next(); rule = 'CASCADE'; }
+      else if (isKw('SET')) {
+        next();
+        if (isKw('NULL')) { next(); rule = 'SET NULL'; } else if (isKw('DEFAULT')) { next(); rule = 'SET DEFAULT'; } else err('Expected SET NULL or SET DEFAULT');
+      } else if (isKw('RESTRICT')) { next(); rule = 'RESTRICT'; }
+      else if (isKw('NO')) { next(); if (!isKw('ACTION')) err('Expected NO ACTION'); next(); rule = 'NO ACTION'; }
+      else err('Expected CASCADE, SET NULL, SET DEFAULT, RESTRICT or NO ACTION');
+      fk[kind] = rule;
+    }
+  }
+  function parseType() {
+    const t = parseIdent('a data type (e.g. INT, VARCHAR(20), DATE)');
+    let name = t.v.toUpperCase();
+    if (name === 'DOUBLE' && peek().t === 'id' && peek().v.toUpperCase() === 'PRECISION') { next(); name = 'DOUBLE PRECISION'; }
+    if (name === 'CHARACTER' && peek().t === 'id' && peek().v.toUpperCase() === 'VARYING') { next(); name = 'VARCHAR'; }
+    if (!TYPES[name]) err(`Unknown data type "${t.v}". Try INT, NUMERIC(5,2), VARCHAR(30), TEXT, DATE or BOOLEAN.`, t);
+    const args = [];
+    if (isP('(')) {
+      next();
+      for (;;) { if (peek().t !== 'num') err('Expected a number inside the type, e.g. VARCHAR(30)'); args.push(next().v); if (isP(',')) { next(); continue; } break; }
+      expectP(')');
+    }
+    return { name, args, text: name + (args.length ? `(${args.join(',')})` : ''), family: TYPES[name], e: last().e };
+  }
+  function parseRef(kind, cols, name, s, inline) {
+    if (!isKw('REFERENCES')) err('A foreign key needs REFERENCES table(column)');
+    next();
+    const ref = parseIdent('the referenced table name');
+    const refcols = isP('(') ? parseNameList() : null;
+    const fk = { kind: 'fk', cols, ref, refcols, name, del: 'NO ACTION', upd: 'NO ACTION', inline, s };
+    parseRules(fk);
+    fk.e = last().e;
+    return fk;
+  }
+  function parseCreate() {
+    clause = 'CREATE';
+    const c = next();
+    if (!isKw('TABLE')) err('Only CREATE TABLE is supported here');
+    next();
+    const nameTok = parseIdent('a table name');
+    const tbl = { name: nameTok.v, nameSpan: [nameTok.s, nameTok.e], s: c.s, cols: [], cons: [] };
+    expectP('(');
+    tbl.headSpan = [c.s, last().e];
+    for (;;) {
+      if (isP(')')) err('A table needs at least one column (and no comma right before ")")');
+      const es = peek().s;
+      let cname = null;
+      if (isKw('CONSTRAINT')) { next(); cname = parseIdent('a constraint name').v; }
+      if (isKw('PRIMARY')) { next(); expectKw('KEY'); const cols = parseNameList(); tbl.cons.push({ kind: 'pk', cols, name: cname, s: es, e: last().e }); }
+      else if (isKw('UNIQUE')) { next(); const cols = parseNameList(); tbl.cons.push({ kind: 'unique', cols, name: cname, s: es, e: last().e }); }
+      else if (isKw('CHECK')) { next(); expectP('('); const ex = parseExpr(); expectP(')'); tbl.cons.push({ kind: 'check', expr: ex, name: cname, s: es, e: last().e }); }
+      else if (isKw('FOREIGN')) { next(); expectKw('KEY'); const cols = parseNameList(); tbl.cons.push(parseRef('fk', cols, cname, es, false)); }
+      else if (cname) err('Expected PRIMARY KEY, UNIQUE, CHECK or FOREIGN KEY after the constraint name');
+      else {
+        const col = parseIdent('a column name (or a constraint such as PRIMARY KEY (…))');
+        const type = parseType();
+        const cd = { name: col.v, tok: col, type, s: col.s, defSpan: [col.s, type.e] };
+        for (;;) {
+          const cs = peek().s;
+          let ccn = null;
+          if (isKw('CONSTRAINT')) { next(); ccn = parseIdent('a constraint name').v; }
+          if (isKw('PRIMARY')) { next(); expectKw('KEY'); tbl.cons.push({ kind: 'pk', cols: [col], name: ccn, s: cs, e: last().e, inline: true }); }
+          else if (isKw('NOT')) { next(); if (!isKw('NULL')) err('Expected NULL after NOT'); next(); tbl.cons.push({ kind: 'notnull', cols: [col], s: cs, e: last().e }); }
+          else if (isKw('NULL')) next();
+          else if (isKw('UNIQUE')) { next(); tbl.cons.push({ kind: 'unique', cols: [col], name: ccn, s: cs, e: last().e, inline: true }); }
+          else if (isKw('DEFAULT')) { next(); const ex = parseAdd(); tbl.cons.push({ kind: 'default', cols: [col], expr: ex, s: cs, e: last().e }); }
+          else if (isKw('CHECK')) { next(); expectP('('); const ex = parseExpr(); expectP(')'); tbl.cons.push({ kind: 'check', cols: [col], expr: ex, name: ccn, s: cs, e: last().e }); }
+          else if (isKw('REFERENCES')) tbl.cons.push(parseRef('fk', [col], ccn, cs, true));
+          else if (ccn) err('Expected a constraint after the constraint name');
+          else break;
+        }
+        cd.e = last().e;
+        tbl.cols.push(cd);
+      }
+      if (isP(',')) { next(); continue; }
+      break;
+    }
+    if (!isP(')')) err(`Expected "," or ")" but found ${desc(peek())}`);
+    next();
+    tbl.e = last().e;
+    if (isP(';')) next();
+    return tbl;
+  }
+  if (isKw('DROP') || isKw('ALTER')) throw new SqlError(`${peek().up} TABLE is not supported here. Write the tables with CREATE TABLE.`, 'CREATE', peek().s, peek().e);
+  if (isKw('CREATE')) {
+    const tables = [];
+    while (isKw('CREATE')) tables.push(parseCreate());
+    if (peek().t !== 'eof') {
+      const t = peek();
+      if (t.t === 'kw' && ['SELECT', 'UPDATE', 'DELETE'].includes(t.up)) throw new SqlError('Run CREATE TABLE statements on their own: put -- in front of the query.', 'CREATE', t.s, t.e);
+      throw new SqlError(`Expected another CREATE TABLE but found ${desc(t)}`, 'CREATE', t.s, t.e);
+    }
+    return { kind: 'ddl', tables };
+  }
   let q;
   if (isKw('DELETE')) q = parseDelete();
   else if (isKw('UPDATE')) q = parseUpdate();
@@ -1740,7 +1918,7 @@ function buildTrace(src, opts) {
   const q = parse(src);
   const T = { steps: [], crumbs: [], src, opts: opts || {} };
   const root = { T, scopeId: 'main', scopeLabel: null, kind: 'main', extraLeft: [], scopeSpan: null, parentScope: null };
-  const result = q.kind ? traceDML(q, root) : traceQuery(q, root);
+  const result = q.kind === 'ddl' ? traceDDL(q, root) : q.kind ? traceDML(q, root) : traceQuery(q, root);
   return { steps: T.steps, crumbs: T.crumbs, result, dml: !!q.kind };
 }
 
@@ -2710,13 +2888,317 @@ function traceDML(q, ctx) {
   return cur[tname];
 }
 
+/* ======================= DDL: CREATE TABLE + Chen ERD ======================= */
+function traceDDL(q, ctx) {
+  const src = ctx.T.src;
+  const E = (msg, s, e) => new SqlError(msg, 'CREATE', s, e);
+  const byName = {};
+  const tables = [];
+
+  /* ---------- 1. check the schema, table by table ---------- */
+  for (const t of q.tables) {
+    const key = t.name.toLowerCase();
+    if (byName[key]) throw E(`Table ${t.name} is created twice.`, t.nameSpan[0], t.nameSpan[1]);
+    const cols = t.cols.map(c => ({ name: c.name, type: c.type, span: c.defSpan, full: [c.s, c.e] }));
+    cols.forEach((c, i) => {
+      const j = cols.findIndex(d => d.name.toLowerCase() === c.name.toLowerCase());
+      if (j !== i) throw E(`${t.name} has two columns called ${c.name}.`, t.cols[i].s, t.cols[i].defSpan[1]);
+    });
+    const info = { name: t.name, key, cols, pk: [], pkCon: null, uniques: [], notnulls: [], defaults: [], checks: [], fks: [], stmt: t };
+    const need = tok => {
+      const i = cols.findIndex(c => c.name.toLowerCase() === tok.v.toLowerCase());
+      if (i < 0) throw E(`${t.name} has no column "${tok.v}". Its columns: ${cols.map(c => c.name).join(', ')}.`, tok.s, tok.e);
+      return i;
+    };
+    for (const c of t.cons) {
+      if (c.kind === 'pk') {
+        if (info.pkCon) throw E(`${t.name} already has a primary key. A table can have only one; for a composite key write PRIMARY KEY (a, b).`, c.s, c.e);
+        info.pk = c.cols.map(need); info.pkCon = c;
+      } else if (c.kind === 'unique') info.uniques.push({ cols: c.cols.map(need), con: c });
+      else if (c.kind === 'notnull') info.notnulls.push({ col: need(c.cols[0]), con: c });
+      else if (c.kind === 'default') info.defaults.push({ col: need(c.cols[0]), con: c, text: text(src, c.expr) });
+      else if (c.kind === 'check') {
+        walk(c.expr, x => {
+          if (x.type === 'col') need({ v: x.name, s: x.s, e: x.e });
+          if (x.type === 'agg' || x.type === 'sub') throw E('A CHECK can only look at the values in one row.', x.s, x.e);
+        });
+        info.checks.push({ cols: c.cols ? c.cols.map(need) : [], con: c, text: text(src, c.expr) });
+      } else if (c.kind === 'fk') {
+        const self = c.ref.v.toLowerCase() === key;
+        const P = self ? info : byName[c.ref.v.toLowerCase()];
+        if (!P) throw E(`${c.ref.v} doesn't exist yet. Create ${c.ref.v} before ${t.name}: a table can only reference tables that already exist.`, c.ref.s, c.ref.e);
+        const fcols = c.cols.map(need);
+        let pcols;
+        if (c.refcols) pcols = c.refcols.map(tok => {
+          const i = P.cols.findIndex(x => x.name.toLowerCase() === tok.v.toLowerCase());
+          if (i < 0) throw E(`${P.name} has no column "${tok.v}".`, tok.s, tok.e);
+          return i;
+        });
+        else {
+          if (!P.pk.length) throw E(`${P.name} has no primary key, so write the column: REFERENCES ${P.name}(column).`, c.ref.s, c.ref.e);
+          pcols = P.pk;
+        }
+        if (pcols.length !== fcols.length) throw E(`The foreign key has ${fcols.length} column(s) but it references ${pcols.length}.`, c.s, c.e);
+        const same = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+        if (!same(pcols, P.pk) && !P.uniques.some(u => same(u.cols, pcols)))
+          throw E(`${P.name}(${pcols.map(i => P.cols[i].name).join(', ')}) is not a PRIMARY KEY or UNIQUE, so a foreign key can't reference it.`, c.s, c.e);
+        fcols.forEach((fi, k) => {
+          const a = cols[fi].type, b = P.cols[pcols[k]].type;
+          if (a.family !== b.family) throw E(`${t.name}.${cols[fi].name} is ${a.text} but ${P.name}.${P.cols[pcols[k]].name} is ${b.text}: a foreign key must match the type it references.`, c.s, c.e);
+        });
+        info.fks.push({ id: `${t.name}.${fcols.map(i => cols[i].name).join('_')}`, cols: fcols, P, pcols, del: c.del, upd: c.upd, name: c.name, con: c, self });
+      }
+    }
+    byName[key] = info;
+    tables.push(info);
+  }
+
+  /* ---------- 2. how does each table show up in a Chen ERD? ---------- */
+  for (const t of tables) {
+    const fkCols = new Set(t.fks.flatMap(f => f.cols));
+    t.isNN = i => t.pk.includes(i) || t.notnulls.some(n => n.col === i);
+    t.isUnique = cs => (cs.every(i => t.pk.includes(i)) && t.pk.every(i => cs.includes(i))) || t.uniques.some(u => u.cols.length === cs.length && u.cols.every(i => cs.includes(i)));
+    if (t.pk.length && t.pk.every(i => fkCols.has(i)) && t.fks.length === 2 && t.fks.every(f => !f.self)) t.role = 'junction';
+    else if (t.pk.some(i => !fkCols.has(i)) && t.fks.some(f => !f.self && f.cols.every(i => t.pk.includes(i)))) t.role = 'weak';
+    else t.role = 'entity';
+    t.fks.forEach(f => {
+      f.identifying = t.role === 'weak' && f.cols.every(i => t.pk.includes(i));
+      f.total = f.cols.every(i => t.isNN(i));
+      f.oneToOne = t.isUnique(f.cols);
+    });
+  }
+
+  /* ---------- 3. a fixed layout, so nothing jumps between steps ---------- */
+  const nodes = tables.filter(t => t.role !== 'junction');
+  const adj = new Map(nodes.map(n => [n, []]));
+  const link = (a, b) => { if (a !== b && adj.has(a) && adj.has(b)) { adj.get(a).push(b); adj.get(b).push(a); } };
+  tables.forEach(t => (t.role === 'junction' ? link(t.fks[0].P, t.fks[1].P) : t.fks.forEach(f => link(t, f.P))));
+  const order = [], seen = new Set();
+  const dfs = n => { seen.add(n); order.push(n); adj.get(n).slice().sort((a, b) => nodes.indexOf(a) - nodes.indexOf(b)).forEach(m => { if (!seen.has(m)) dfs(m); }); };
+  nodes.forEach(n => { if (!seen.has(n)) dfs(n); });
+
+  const W = 720, CX = 360, BAND = 300, TOP = 115;
+  const H = TOP * 2 + Math.max(0, order.length - 1) * BAND;
+  const ovalW = s => Math.max(80, s.length * 10 + 34);
+  const pos = {};
+  order.forEach((t, i) => {
+    const w = Math.max(160, t.name.length * 12.5 + 44);
+    pos[t.key] = { x: CX, y: TOP + i * BAND, w, h: 58, i };
+  });
+  const attrPos = {};
+  const placeFan = (t, cx, cy) => {
+    const n = t.cols.length, nl = Math.ceil(n / 2);
+    t.cols.forEach((c, j) => {
+      const left = j < nl, k = left ? nl : n - nl, idx = left ? j : j - nl;
+      const u = k === 1 ? 0 : -1 + (2 * idx) / (k - 1);
+      const dx = 205 - 18 * u * u;
+      attrPos[`${t.key}.${j}`] = { x: cx + (left ? -dx : dx), y: cy + u * 82, w: ovalW(c.name), h: 40 };
+    });
+  };
+  order.forEach(t => placeFan(t, pos[t.key].x, pos[t.key].y));
+
+  /* relationships: between vertically adjacent entities, otherwise in a side lane */
+  const rels = [];
+  const lanes = {};
+  const relSpot = (A, B) => {
+    const a = pos[A.key], b = pos[B.key];
+    if (A === B) return { x: CX + 255, y: a.y - 120, lane: true };
+    if (Math.abs(a.i - b.i) === 1) {
+      const k = `${Math.min(a.i, b.i)}`;
+      lanes[k] = (lanes[k] || 0) + 1;
+      return { x: CX + (lanes[k] - 1) * 150, y: (a.y + b.y) / 2, lane: false };
+    }
+    return { x: CX + 255, y: (a.y + b.y) / 2, lane: true };
+  };
+  tables.forEach(t => {
+    if (t.role === 'junction') {
+      const [f1, f2] = t.fks;
+      const at = relSpot(f1.P, f2.P);
+      const r = { id: `J:${t.key}`, table: t, label: t.name, x: at.x, y: at.y, w: Math.max(120, t.name.length * 12 + 60), h: 66, junction: true, fks: [f1, f2] };
+      rels.push(r);
+      t.cols.forEach((c, j) => {
+        const k = t.cols.length;
+        attrPos[`${t.key}.${j}`] = { x: r.x + r.w / 2 + 30 + ovalW(c.name) / 2 + (at.lane ? 0 : 60), y: r.y + (j - (k - 1) / 2) * 44, w: ovalW(c.name), h: 38 };
+      });
+    } else {
+      t.fks.forEach(f => {
+        const at = relSpot(t, f.P);
+        const label = f.name || f.cols.map(i => t.cols[i].name).join(', ');
+        rels.push({ id: `R:${f.id}`, table: t, label, x: at.x, y: at.y, w: Math.max(116, label.length * 10.5 + 60), h: 62, fk: f });
+      });
+    }
+  });
+
+  /* bounding box of the finished diagram, so the view never changes size */
+  const bb = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+  const grow = (x, y, w, h) => { bb.x1 = Math.min(bb.x1, x - w / 2); bb.x2 = Math.max(bb.x2, x + w / 2); bb.y1 = Math.min(bb.y1, y - h / 2); bb.y2 = Math.max(bb.y2, y + h / 2); };
+  Object.values(pos).forEach(p => grow(p.x, p.y, p.w, p.h));
+  Object.values(attrPos).forEach(p => grow(p.x, p.y, p.w, p.h));
+  rels.forEach(r => grow(r.x, r.y, r.w, r.h + 40));
+  if (!isFinite(bb.x1)) Object.assign(bb, { x1: 0, y1: 0, x2: W, y2: H });
+  const VB = [bb.x1 - 24, bb.y1 - 24, bb.x2 - bb.x1 + 48, bb.y2 - bb.y1 + 48];
+
+  /* ---------- 4. the scene for a given moment ---------- */
+  const st = { created: new Set(), pk: new Set(), fk: new Set() };
+  const newIds = new Set();
+  const scene = hot => {
+    const shapes = { lines: [], ents: [], attrs: [], rels: [], labels: [] };
+    const nw = id => newIds.has(id);
+    const edge = (p, tx, ty) => {
+      // point on the border of an entity box (p) in the direction of (tx, ty)
+      const dx = tx - p.x, dy = ty - p.y;
+      const sx = dx === 0 ? Infinity : (p.w / 2) / Math.abs(dx), sy = dy === 0 ? Infinity : (p.h / 2) / Math.abs(dy);
+      const s = Math.min(sx, sy);
+      return { x: p.x + dx * s, y: p.y + dy * s };
+    };
+    const end = (id, from, ent, card, total, isNew) => {
+      const e = edge(ent, from.x, from.y);
+      shapes.lines.push({ id, x1: from.x, y1: from.y, x2: e.x, y2: e.y, total, isNew });
+      const len = Math.hypot(from.x - e.x, from.y - e.y) || 1;
+      const ux = (from.x - e.x) / len, uy = (from.y - e.y) / len;
+      shapes.labels.push({ x: e.x + ux * 22 - uy * 16, y: e.y + uy * 22 + ux * 16 + 6, t: card, isNew });
+    };
+    for (const t of tables) {
+      if (!st.created.has(t.key)) continue;
+      const fkDoneCols = new Set(t.fks.filter(f => st.fk.has(f.id)).flatMap(f => f.cols));
+      const identDone = t.fks.some(f => f.identifying && st.fk.has(f.id));
+      if (t.role !== 'junction') {
+        const p = pos[t.key];
+        shapes.ents.push({ id: `E:${t.key}`, x: p.x, y: p.y, w: p.w, h: p.h, label: t.name, weak: identDone, hot: hot === t, isNew: nw(`E:${t.key}`) || (identDone && nw(`W:${t.key}`)) });
+      }
+      t.cols.forEach((c, j) => {
+        if (fkDoneCols.has(j)) return;
+        const a = attrPos[`${t.key}.${j}`];
+        const isKey = st.pk.has(t.key) && t.pk.includes(j);
+        const anchor = t.role === 'junction' ? rels.find(r => r.table === t) : pos[t.key];
+        shapes.lines.push({ id: `AL:${t.key}.${j}`, x1: anchor.x, y1: anchor.y, x2: a.x, y2: a.y, attr: true, isNew: nw(`A:${t.key}.${j}`) });
+        shapes.attrs.push({ id: `A:${t.key}.${j}`, x: a.x, y: a.y, w: a.w, h: a.h, label: c.name, key: isKey ? (identDone ? 'partial' : 'key') : null, isNew: nw(`A:${t.key}.${j}`) || (isKey && nw(`K:${t.key}`)), hot: hot === t });
+      });
+    }
+    for (const r of rels) {
+      const t = r.table;
+      if (!st.created.has(t.key)) continue;
+      if (r.junction) {
+        shapes.rels.push({ id: r.id, x: r.x, y: r.y, w: r.w, h: r.h, label: r.label, ident: false, isNew: nw(r.id), hot: hot === t });
+        r.fks.forEach((f, k) => {
+          if (!st.fk.has(f.id)) return;
+          const from = { x: r.x, y: r.y + (pos[f.P.key].y < r.y ? -r.h / 2 : r.h / 2) };
+          end(`${r.id}:${k}`, pos[f.P.key].y === r.y ? { x: r.x - r.w / 2, y: r.y } : from, pos[f.P.key], r.fks.length === 2 && r.fks[0].P === r.fks[1].P ? 'N' : k === 0 ? 'M' : 'N', false, nw(`F:${f.id}`));
+        });
+      } else {
+        const f = r.fk;
+        if (!st.fk.has(f.id)) continue;
+        const isNew = nw(`F:${f.id}`);
+        shapes.rels.push({ id: r.id, x: r.x, y: r.y, w: r.w, h: r.h, label: r.label, ident: f.identifying, isNew, hot: hot === t });
+        const c = pos[t.key], p = pos[f.P.key];
+        if (f.self) {
+          end(`${r.id}:c`, { x: r.x - r.w / 2, y: r.y - 6 }, { ...c, y: c.y - 8 }, f.oneToOne ? '1' : 'N', f.total, isNew);
+          end(`${r.id}:p`, { x: r.x - r.w / 2, y: r.y + 6 }, { ...c, y: c.y + 8 }, '1', false, isNew);
+          continue;
+        }
+        const vert = (q2) => (Math.abs(q2.y - r.y) < 1 ? { x: r.x + (q2.x < r.x ? -r.w / 2 : r.w / 2), y: r.y } : { x: r.x, y: r.y + (q2.y < r.y ? -r.h / 2 : r.h / 2) });
+        const lane = r.x !== CX;
+        const fromC = lane ? { x: r.x - r.w / 2 * 0.2, y: r.y + (c.y < r.y ? -r.h / 2 : r.h / 2) } : vert(c);
+        const fromP = lane ? { x: r.x - r.w / 2 * 0.2, y: r.y + (p.y < r.y ? -r.h / 2 : r.h / 2) } : vert(p);
+        end(`${r.id}:c`, fromC, c, f.oneToOne ? '1' : 'N', f.total, isNew);
+        end(`${r.id}:p`, fromP, p, '1', false, isNew);
+      }
+    }
+    return { kind: 'erd', w: W, h: H, vb: VB, ...shapes };
+  };
+
+  /* ---------- 5. table cards ---------- */
+  const shown = new Map(); // table key -> Set of badge ids already shown
+  const card = (t, hotCols, newBadges, tagged) => {
+    const done = shown.get(t.key) || new Set();
+    const rows = t.cols.map((c, j) => {
+      const b = [];
+      const add = (id, label, cls, title) => { if (done.has(id)) b.push({ label, cls, title, isNew: newBadges.has(id) }); };
+      add(`pk:${j}`, 'PRIMARY KEY', 'b-pk');
+      add(`pknn:${j}`, 'NOT NULL', 'b-nn b-implied', 'implied by the primary key');
+      add(`nn:${j}`, 'NOT NULL', 'b-nn');
+      add(`uq:${j}`, 'UNIQUE', 'b-uq');
+      add(`df:${j}`, `DEFAULT ${(t.defaults.find(d => d.col === j) || {}).text || ''}`, 'b-df');
+      t.checks.forEach((ch, k) => { if (ch.cols.includes(j)) add(`ck:${k}`, `CHECK (${ch.text})`, 'b-ck'); });
+      t.fks.forEach(f => { const k = f.cols.indexOf(j); if (k >= 0) add(`fk:${f.id}`, `→ ${f.P.name}(${f.P.cols[f.pcols[k]].name})${f.del !== 'NO ACTION' ? ` ON DELETE ${f.del}` : ''}${f.upd !== 'NO ACTION' ? ` ON UPDATE ${f.upd}` : ''}`, 'b-fk'); });
+      return { name: c.name, type: c.type.text, key: done.has(`pk:${j}`), hot: hotCols && hotCols.includes(j), badges: b };
+    });
+    const tableChecks = t.checks.map((ch, k) => ({ ch, k })).filter(x => !x.ch.cols.length && done.has(`ck:${x.k}`)).map(x => ({ label: `CHECK (${x.ch.text})`, cls: 'b-ck', isNew: newBadges.has(`ck:${x.k}`) }));
+    const roleTag = { entity: 'entity', weak: 'weak entity', junction: 'relationship' }[t.role];
+    return { kind: 'ddlcard', id: `card:${t.key}`, name: t.name, tag: tagged ? roleTag : null, rows, extra: tableChecks, hotCard: !!hotCols };
+  };
+  const reveal = (t, ids) => { const s = shown.get(t.key) || new Set(); ids.forEach(i => s.add(i)); shown.set(t.key, s); };
+
+  /* ---------- 6. steps ---------- */
+  const tagged = new Set();
+  tables.forEach(t => {
+    const sub = { T: ctx.T, scopeId: `ddl:${t.key}`, scopeLabel: t.name, kind: 'ddl', extraLeft: [], scopeSpan: null };
+    const step = (stage, crumbLabel, hl, newBadgeIds, hotCols, caption, extraLeft) => {
+      newBadgeIds = new Set(newBadgeIds);
+      reveal(t, newBadgeIds);
+      push(sub, stage, {
+        crumbLabel, hl,
+        left: [card(t, hotCols, newBadgeIds, tagged.has(t.key))].concat(extraLeft || []),
+        right: [scene(t)], caption,
+      });
+      newIds.clear();
+    };
+    const stmtHl = [t.stmt.headSpan].concat(t.cols.map(c => c.span));
+
+    st.created.add(t.key);
+    newIds.add(`E:${t.key}`).add(`J:${t.key}`);
+    t.cols.forEach((c, j) => newIds.add(`A:${t.key}.${j}`));
+    step('CREATE', 'CREATE', stmtHl, [], null,
+      t.role === 'junction' ? 'Each column → an attribute (oval)' : `New table → an entity (rectangle); each column → an attribute (oval)`);
+
+    if (t.pk.length) {
+      st.pk.add(t.key);
+      newIds.add(`K:${t.key}`);
+      const ids = t.pk.flatMap(j => [`pk:${j}`, `pknn:${j}`]);
+      step('PRIMARY KEY', 'PRIMARY KEY', [[t.pkCon.s, t.pkCon.e]], ids, t.pk,
+        t.pk.length > 1 ? `Together, ${t.pk.map(j => t.cols[j].name).join(' + ')} identify each row → underlined` : `${t.cols[t.pk[0]].name} identifies each row → underlined`);
+    }
+    const nn = t.notnulls.filter(n => !t.pk.includes(n.col));
+    if (nn.length) step('CONSTRAINT', 'CONSTRAINTS', nn.map(n => [n.con.s, n.con.e]), nn.map(n => `nn:${n.col}`), nn.map(n => n.col), 'A value is required (a Chen ERD doesn’t show this)');
+    if (t.uniques.length) step('CONSTRAINT', 'CONSTRAINTS', t.uniques.map(u => [u.con.s, u.con.e]), t.uniques.flatMap(u => u.cols.map(j => `uq:${j}`)), t.uniques.flatMap(u => u.cols), 'No two rows may share this value');
+    if (t.defaults.length) step('CONSTRAINT', 'CONSTRAINTS', t.defaults.map(d => [d.con.s, d.con.e]), t.defaults.map(d => `df:${d.col}`), t.defaults.map(d => d.col), 'Filled in when an INSERT leaves it out');
+    if (t.checks.length) step('CONSTRAINT', 'CONSTRAINTS', t.checks.map(c => [c.con.s, c.con.e]), t.checks.map((c, k) => `ck:${k}`), t.checks.flatMap(c => c.cols), 'Every row must pass this test');
+
+    t.fks.forEach((f, k) => {
+      st.fk.add(f.id);
+      newIds.add(`F:${f.id}`);
+      if (f.identifying) newIds.add(`W:${t.key}`);
+      const colNames = f.cols.map(j => t.cols[j].name).join(', ');
+      let caption;
+      if (t.role === 'junction') caption = k === 0 ? `${colNames} points at ${f.P.name}` : `${t.name} links ${t.fks[0].P.name} and ${f.P.name} → an M:N relationship`;
+      else if (f.identifying) caption = `${t.name} can’t exist without its ${f.P.name} → weak entity`;
+      else if (f.self) caption = `${t.name} points at another ${t.name} → a recursive relationship`;
+      else caption = `Each ${t.name} has ${f.total ? 'exactly' : 'at most'} one ${f.P.name}${f.oneToOne ? '' : `; a ${f.P.name} can have many ${t.name}`}${f.total ? ' (double line: it must have one)' : ''}`;
+      if (k === t.fks.length - 1) tagged.add(t.key);
+      const parentCard = f.self ? [] : [card(f.P, f.pcols, new Set(), tagged.has(f.P.key))];
+      step('FOREIGN KEY', 'FOREIGN KEY', [[f.con.s, f.con.e]], [`fk:${f.id}`], f.cols, caption, parentCard);
+    });
+    tagged.add(t.key);
+  });
+
+  /* final: the whole schema and its ERD */
+  const ents = tables.filter(t => t.role !== 'junction').length;
+  const relN = rels.length;
+  push({ T: ctx.T, scopeId: 'ddl:all', scopeLabel: 'schema', kind: 'ddl', extraLeft: [], scopeSpan: null }, 'RESULT', {
+    crumbLabel: 'ERD', hl: [],
+    left: tables.map(t => card(t, null, new Set(), true)), right: [scene(null)],
+    caption: `${ents} entit${ents === 1 ? 'y' : 'ies'}, ${relN} relationship${relN === 1 ? '' : 's'}`,
+  });
+  return { rid: 'ddl', rows: [], cols: [] };
+}
+
 if (typeof module !== 'undefined') module.exports = { setDataset, parse, tokenize, buildTrace, SqlError, fmt };
 
 /* =====================================================================
    UI: renders trace snapshots; all motion is derived from what changed
    between two consecutive snapshots (same key => same piece of data).
    ===================================================================== */
-const STAGE_CLS = { 'DELETE': 'del', 'SET': 'upd', 'FK': 'fk', 'FROM': 'from', 'JOIN': 'join', 'WHERE': 'where', 'GROUP BY': 'group', 'SELECT': 'select', 'DISTINCT': 'distinct', 'ORDER BY': 'order', 'RESULT': 'result' };
+const STAGE_CLS = { 'CREATE': 'ddl', 'PRIMARY KEY': 'con', 'CONSTRAINT': 'con', 'FOREIGN KEY': 'fk', 'DELETE': 'del', 'SET': 'upd', 'FK': 'fk', 'FROM': 'from', 'JOIN': 'join', 'WHERE': 'where', 'GROUP BY': 'group', 'SELECT': 'select', 'DISTINCT': 'distinct', 'ORDER BY': 'order', 'RESULT': 'result' };
 const CLOUD = 'M26,22 A49,49 0 0 1 108,22 A69,69 0 0 1 212,22 A57,57 0 0 1 311,22 A67,67 0 0 1 415,22 A53,53 0 0 1 503,22 A44,44 0 0 1 574,22 A32,32 0 0 1 574,80 A61,61 0 0 1 475,80 A70,70 0 0 1 355,80 A80,80 0 0 1 234,80 A69,69 0 0 1 119,80 A58,58 0 0 1 26,80 A32,32 0 0 1 26,22 Z';
 const SPEEDS = { slow: 3400, normal: 2200, fast: 1200 };
 
@@ -2765,6 +3247,14 @@ function paintEditor() {
   hlPre.innerHTML = editorHtml(ta.value, step, state.err);
   ta.style.height = 'auto';
   ta.style.height = ta.scrollHeight + 'px';
+  /* long scripts scroll inside the editor: keep the highlighted clause in view */
+  const box = $('.editor');
+  const mark = hlPre.querySelector('[class*="h-"], .err');
+  if (mark && (step || state.err)) {
+    const top = mark.offsetTop, bottom = top + mark.offsetHeight;
+    if (top < box.scrollTop + 10 || bottom > box.scrollTop + box.clientHeight - 10)
+      box.scrollTo({ top: Math.max(0, top - box.clientHeight / 3), behavior: reduceMotion() ? 'auto' : 'smooth' });
+  }
 }
 
 /* ---------------- rendering specs ---------------- */
@@ -2826,12 +3316,48 @@ function renderValue(p) {
   return `<div class="panel value" data-pk="val-${esc(p.k)}"><div class="ptitle"><span>${esc(p.title)}</span><span class="tag">one value</span></div>
     <div class="vbox" data-k="${esc(p.k)}"${p.f ? ` data-f="${esc(p.f)}"` : ''}>${esc(p.v)}</div></div>`;
 }
+function renderDdlCard(p) {
+  const badge = b => `<span class="bdg ${b.cls} ${b.isNew ? 'bnew' : ''}"${b.title ? ` title="${esc(b.title)}"` : ''}>${esc(b.label)}</span>`;
+  const rows = p.rows.map(r => `<div class="dc-name ${r.key ? 'is-key' : ''} ${r.hot ? 'hot' : ''}">${r.key ? '🔑 ' : ''}${esc(r.name)}</div>
+    <div class="dc-type ${r.hot ? 'hot' : ''}">${esc(r.type)}</div><div class="dc-bdg ${r.hot ? 'hot' : ''}">${r.badges.map(badge).join('')}</div>`).join('');
+  return `<div class="panel ddl-card ${p.hotCard ? 'hot' : ''}" data-pk="${esc(p.id)}">
+    <div class="ptitle"><span class="tname">${esc(p.name)}</span>${p.tag ? `<span class="tag">${esc(p.tag)}</span>` : ''}</div>
+    <div class="dc-grid">${rows}</div>${p.extra.length ? `<div class="dc-extra">${p.extra.map(badge).join('')}</div>` : ''}</div>`;
+}
+function renderErd(p) {
+  const pop = x => (x.isNew ? ' pop' : '');
+  let h = '';
+  p.lines.forEach(l => {
+    const cls = `${l.attr ? 'l-attr' : 'l-rel'}${pop(l)}`;
+    if (l.total) {
+      const len = Math.hypot(l.x2 - l.x1, l.y2 - l.y1) || 1, ox = -(l.y2 - l.y1) / len * 3, oy = (l.x2 - l.x1) / len * 3;
+      h += `<g class="${cls}"><line x1="${l.x1 + ox}" y1="${l.y1 + oy}" x2="${l.x2 + ox}" y2="${l.y2 + oy}"/><line x1="${l.x1 - ox}" y1="${l.y1 - oy}" x2="${l.x2 - ox}" y2="${l.y2 - oy}"/></g>`;
+    } else h += `<line class="${cls}" x1="${l.x1}" y1="${l.y1}" x2="${l.x2}" y2="${l.y2}"/>`;
+  });
+  const dia = (r, s) => `${r.x},${r.y - r.h / 2 + s} ${r.x + r.w / 2 - s * 1.6},${r.y} ${r.x},${r.y + r.h / 2 - s} ${r.x - r.w / 2 + s * 1.6},${r.y}`;
+  p.rels.forEach(r => {
+    h += `<g class="rel${pop(r)}${r.hot ? ' hot' : ''}"><polygon points="${dia(r, 0)}"/>${r.ident ? `<polygon class="inner" points="${dia(r, 6)}"/>` : ''}<text x="${r.x}" y="${r.y + 6}">${esc(r.label)}</text></g>`;
+  });
+  p.ents.forEach(e => {
+    h += `<g class="ent${pop(e)}${e.hot ? ' hot' : ''}"><rect x="${e.x - e.w / 2}" y="${e.y - e.h / 2}" width="${e.w}" height="${e.h}"/>${e.weak ? `<rect class="inner" x="${e.x - e.w / 2 + 5}" y="${e.y - e.h / 2 + 5}" width="${e.w - 10}" height="${e.h - 10}"/>` : ''}<text x="${e.x}" y="${e.y + 7}">${esc(e.label)}</text></g>`;
+  });
+  p.attrs.forEach(a => {
+    const tw = a.label.length * 9.4;
+    h += `<g class="attr${pop(a)}${a.hot ? ' hot' : ''}"><ellipse cx="${a.x}" cy="${a.y}" rx="${a.w / 2}" ry="${a.h / 2}"/><text x="${a.x}" y="${a.y + 6}">${esc(a.label)}</text>${a.key ? `<line class="${a.key === 'partial' ? 'ul dash' : 'ul'}" x1="${a.x - tw / 2}" y1="${a.y + 11}" x2="${a.x + tw / 2}" y2="${a.y + 11}"/>` : ''}</g>`;
+  });
+  p.labels.forEach(l => { h += `<text class="card${pop(l)}" x="${l.x}" y="${l.y}">${esc(l.t)}</text>`; });
+  return `<div class="panel erd-panel" data-pk="erd" data-nw="${Math.round(p.vb[2] * 0.95)}"><div class="ptitle"><span>ERD</span><span class="tag">Chen notation</span></div>
+    <svg class="erd" viewBox="${p.vb.join(' ')}" preserveAspectRatio="xMidYMin meet" role="img" aria-label="Entity-relationship diagram">${h}</svg>
+    <div class="erd-legend"><span>▭ entity</span><span>⬭ attribute</span><span>◇ relationship</span><span><u>key</u></span><span>▭▭ weak</span><span>═ must participate</span></div></div>`;
+}
 function renderPanel(p) {
   switch (p.kind) {
     case 'table': return renderTable(p);
     case 'grid': return renderGrid(p);
     case 'agg': return renderAgg(p);
     case 'value': return renderValue(p);
+    case 'ddlcard': return renderDdlCard(p);
+    case 'erd': return renderErd(p);
     case 'reject': return `<div class="panel reject" data-pk="reject"><div class="rx">✗</div><div>${esc(p.text)}</div></div>`;
     case 'placeholder': return `<div class="panel ph ${p.label && p.label !== '?' ? 'small' : ''}" data-pk="ph">${esc(p.label === undefined ? '' : p.label)}</div>`;
     case 'idle': return `<div class="panel ph idle" data-pk="idle">${p.html}</div>`;
@@ -2966,7 +3492,7 @@ function fitRegions() {
     const box = $(id + ' .panels');
     box.style.zoom = '';
     let w = 0;
-    box.querySelectorAll(':scope > .panel').forEach(p => { p.style.zoom = ''; w = Math.max(w, p.classList.contains('ph') ? 280 : p.scrollWidth); });
+    box.querySelectorAll(':scope > .panel').forEach(p => { p.style.zoom = ''; w = Math.max(w, p.classList.contains('ph') ? 280 : p.dataset.nw ? +p.dataset.nw : p.scrollWidth); });
     return w;
   };
   if (window.innerWidth > 1100) {
