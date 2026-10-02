@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SQL, step by step · CSC343</title>
+<title>SQL Simulator CSC343</title>
 <style>
 :root {
   --scale: 1.35;
@@ -388,6 +388,19 @@ header { min-width: 0; }
   --hdr: #243a5c; --hdr-ink: #fff; --hdr-muted: #b8c9e2;
 }
 
+/* Songs & Students: a music-app look (soft lavender by day, deep violet by night) */
+:root[data-fun][data-ds="lec5"] {
+  --paper: #f5f2fc; --panel: #ffffff; --ink: #221a3d; --muted: #645a85; --faint: #a39cc0; --line: #3b2f66; --line-soft: #d9d1f0; --result-bg: #ebe5fa; --active: #e0458b;
+  --bg: radial-gradient(circle at 10% 110%, rgba(123, 92, 214, .16), transparent 40%), radial-gradient(circle at 95% 0%, rgba(43, 181, 168, .14), transparent 35%), #f5f2fc;
+  --hdr: #2d1f5c; --hdr-ink: #fff; --hdr-muted: #cbbff0;
+  --display: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+:root[data-fun][data-mode="dark"][data-ds="lec5"] {
+  --paper: #120e22; --panel: #1c1733; --ink: #eee9ff; --muted: #b1a7d6; --faint: #776d9c; --line: #8e82c2; --line-soft: #352d57; --result-bg: #2a2348; --active: #ff6fae;
+  --bg: radial-gradient(circle at 10% 110%, rgba(123, 92, 214, .30), transparent 40%), radial-gradient(circle at 95% 0%, rgba(43, 181, 168, .20), transparent 35%), #120e22;
+  --hdr: #0b0817; --hdr-ink: #eee9ff; --hdr-muted: #a99fd0;
+}
+
 /* Community Library: card-catalogue cream and reading-room green */
 :root[data-fun][data-ds="library"] {
   --paper: #f6f0e2; --panel: #fffdf6; --ink: #2b2418; --muted: #6f6450; --faint: #ab9f86; --line: #4e4331; --line-soft: #e0d6bf; --result-bg: #efe6d0; --active: #b5541c;
@@ -588,6 +601,16 @@ header { position: relative; z-index: 2; }
 .erd-legend { display: flex; flex-wrap: wrap; gap: .3rem 1rem; font-size: .72rem; color: var(--muted); margin-top: .35rem; }
 @media (prefers-reduced-motion: reduce) { .erd .pop, .bnew { animation: none; } }
 
+/* ---------- relational algebra ---------- */
+.tk-ra { color: var(--from); font-weight: 800; }
+.rabar { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; margin-top: -.3rem; }
+.ra-lbl { font-size: .7rem; color: var(--faint); font-weight: 700; margin-right: .2rem; letter-spacing: .05em; }
+.rak { font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", "DejaVu Sans", var(--mono); font-size: .95rem; min-width: 1.75rem; height: 1.7rem;
+  border: 1px solid var(--line-soft); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; padding: 0 .35rem; }
+.rak:hover { border-color: var(--from); color: var(--from); }
+
+.tbl .td.mk { background: transparent; box-shadow: none; }
+
 </style>
 </head>
 <body>
@@ -625,6 +648,7 @@ header { position: relative; z-index: 2; }
       <textarea id="sql" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="SQL query" placeholder="SELECT …&#10;FROM …&#10;WHERE …;"></textarea>
     </div>
     <nav id="crumbs" aria-label="Steps"></nav>
+    <div class="rabar" id="rabar" aria-label="Relational algebra symbols"></div>
     <div class="runrow">
       <button class="btn primary" id="run" title="Run (Ctrl+Enter)">Run</button>
       <button class="btn" id="reset" title="Back to the data">Reset</button>
@@ -716,6 +740,59 @@ const DATASETS = [
       ['DDL', 'Oops: tables in the wrong order', `-- Try it: this one has a mistake.\nCREATE TABLE Takes (\n  sid    INT REFERENCES Students,\n  course VARCHAR(10),\n  PRIMARY KEY (sid, course)\n);\n\nCREATE TABLE Students (\n  sid  INT PRIMARY KEY,\n  name VARCHAR(30)\n);`],
       ['DDL', 'Oops: two primary keys', `-- Try it: this one has a mistake.\nCREATE TABLE Takes (\n  sid    INT PRIMARY KEY,\n  course VARCHAR(10) PRIMARY KEY\n);`],
       ['DDL', 'Oops: types don\'t match', `-- Try it: this one has a mistake.\nCREATE TABLE Courses (\n  course VARCHAR(10) PRIMARY KEY\n);\n\nCREATE TABLE Takes (\n  sid    INT,\n  course INT REFERENCES Courses\n);`],
+      ['Relational algebra', 'Natural join ⋈', `Students ⋈ Takes`],
+      ['Relational algebra', 'Who takes nothing? (−)', `π[sid](Students) − π[sid](Takes)`],
+      ['Relational algebra', 'Names of CSC108 students', `π[name](σ[course = 'CSC108'](Students ⋈ Takes))`],
+    ],
+  },
+  {
+    id: 'lec5', emoji: '🎧',
+    name: 'Songs & Students (Lecture 5)',
+    fks: [{ child: 'Plays', col: 'song_id', parent: 'Songs', pcol: 'song_id' }],
+    tables: {
+      Songs: {
+        cols: ['song_id', 'title', 'artist'],
+        rows: [[1, 'Blinding Lights', 'The Weeknd'], [2, 'Levitating', 'Dua Lipa'], [3, 'Peaches', 'Justin Bieber']],
+      },
+      Plays: {
+        cols: ['play_id', 'user_id', 'song_id', 'played_at'],
+        rows: [[1, 'u1', 1, '2024-01-01'], [2, 'u1', 1, '2024-01-02'], [3, 'u2', 2, '2024-01-01']],
+      },
+      Students: {
+        cols: ['sid', 'name', 'major', 'gpa'],
+        rows: [[1, 'Anya', 'CS', 3.8], [2, 'Boris', 'Math', 3.2], [3, 'Carmen', 'CS', 3.9], [4, 'Diego', 'Bio', 3.1], [5, 'Elif', 'CS', 3.7]],
+      },
+    },
+    presets: [
+      ['RA: first steps', 'A relation on its own', `Students`],
+      ['RA: first steps', 'σ on a text value', `σ[major = 'Math'](Students)`],
+      ['RA: first steps', 'σ with NOT (¬)', `σ[¬(major = 'CS')](Students)`],
+      ['RA: first steps', 'σ on a date', `σ[played_at = '2024-01-01'](Plays)`],
+      ['RA: first steps', 'π with two attributes', `π[name, gpa](Students)`],
+      ['RA: first steps', 'π removes repeated users', `π[user_id](Plays)`],
+      ['RA: first steps', 'σ, then π', `π[name](σ[gpa < 3.5](Students))`],
+      ['RA: first steps', 'ρ renames attributes', `ρ[Learner(id, who, field, score)](Students)`],
+      ['RA: first steps', '∪ of two small results', `π[name](σ[major = 'Math'](Students))\n  ∪\nπ[name](σ[major = 'Bio'](Students))`],
+      ['RA: selection σ and projection π', 'σ simple condition', `σ[gpa > 3.5](Students)`],
+      ['RA: selection σ and projection π', 'σ with AND (∧)', `σ[major = 'CS' ∧ gpa > 3.7](Students)`],
+      ['RA: selection σ and projection π', 'σ with OR (∨)', `σ[major = 'CS' ∨ gpa > 3.8](Students)`],
+      ['RA: selection σ and projection π', 'σ is commutative', `σ[major = 'CS'](σ[gpa > 3.5](Students))`],
+      ['RA: selection σ and projection π', 'π keeps listed attributes', `π[name](Students)`],
+      ['RA: selection σ and projection π', 'π removes duplicates', `π[major](Students)`],
+      ['RA: rename ρ and joins', 'ρ for a self-join', `ρ[S1](Students)\n  ⋈[S1.major = S2.major]\nρ[S2](Students)`],
+      ['RA: rename ρ and joins', 'ρ names a subexpression', `ρ[HighGPA](σ[gpa > 3.5](Students))`],
+      ['RA: rename ρ and joins', 'Naming with :=', `HighGPA := σ[gpa > 3.5](Students)\nπ[name](HighGPA)`],
+      ['RA: rename ρ and joins', 'Cross product ×', `Songs × Plays`],
+      ['RA: rename ρ and joins', 'Natural join ⋈', `Songs ⋈ Plays`],
+      ['RA: set operations', 'Union ∪', `-- users who played song 1, or song 2\nπ[user_id](σ[song_id = 1](Plays))\n  ∪\nπ[user_id](σ[song_id = 2](Plays))`],
+      ['RA: set operations', 'Intersection ∩', `-- users who played song 1 and song 2\nπ[user_id](σ[song_id = 1](Plays))\n  ∩\nπ[user_id](σ[song_id = 2](Plays))`],
+      ['RA: set operations', 'Difference −', `-- users who played song 1 but not song 2\nπ[user_id](σ[song_id = 1](Plays))\n  −\nπ[user_id](σ[song_id = 2](Plays))`],
+      ['RA: set operations', 'Oops: not union-compatible', `-- Try it: this one has a mistake.\nπ[name, gpa](Students) ∪ π[title](Songs)`],
+      ['Handout Side B (write your own)', 'Box 1 (a)–(c): join types', `-- Box 1 (a): INNER JOIN: each play_id with the title of\n-- the song played. How many rows, and why?\n-- (b): change to LEFT JOIN (Songs on the left).\n-- (c): FROM Songs, Plays with no WHERE.\n-- Write one query at a time below, then Run.\n\n`],
+      ['Handout Side B (write your own)', 'Box 2 (a)–(b): σ and π', `-- Box 2 (a): all attributes of songs by 'Dua Lipa'.\n-- (b): just the title. Try π outside σ, then σ outside π.\n\n`],
+      ['Handout Side B (write your own)', 'Box 3: set operations', `-- Box 3: R and S from the handout. Run to see R,\n-- then change the last line to R ∪ S, R ∩ S, R − S.\nR := π[name](σ[major = 'CS'](Students))\nS := π[name](σ[gpa > 3.5](Students))\nR`],
+      ['Handout Side B (write your own)', 'Box 4 (b)–(c): rename and self-join', `-- Box 4 (b): pairs of students (by name) in the same major,\n-- each pair once (use < on sid). Rename Students to S1, S2.\n-- (c): then write it in SQL.\n\n`],
+      ['Handout Side B (write your own)', 'Box 5 (a)–(b): never-played songs', `-- Box 5 (a): titles of songs never played, using −.\n-- (b): the SQL version with LEFT JOIN … WHERE … IS NULL.\n\n`],
     ],
   },
   {
@@ -799,6 +876,9 @@ const DATASETS = [
       ['DML', 'Take empanadas off the menu: RESTRICT', `DELETE FROM Menu\nWHERE item = 'Empanada';`, { rules: { 'Orders.item': { del: 'RESTRICT' } } }],
       ['DML', 'Rename an item: ON UPDATE CASCADE', `UPDATE Menu\nSET item = 'Iced matcha'\nWHERE item = 'Matcha latte';`, { rules: { 'Orders.item': { upd: 'CASCADE' } } }],
       ['DDL', 'Café schema', `CREATE TABLE Menu (\n  item     VARCHAR(30) PRIMARY KEY,\n  category VARCHAR(10) NOT NULL,\n  price    NUMERIC(4,2)\n             CHECK (price > 0)\n);\n\nCREATE TABLE Customers (\n  customer VARCHAR(20) PRIMARY KEY,\n  city     VARCHAR(20)\n);\n\nCREATE TABLE Orders (\n  oid      INT PRIMARY KEY,\n  customer VARCHAR(20) NOT NULL\n    CONSTRAINT placed_by\n    REFERENCES Customers,\n  item     VARCHAR(30) NOT NULL\n    CONSTRAINT ordered\n    REFERENCES Menu,\n  qty      INT DEFAULT 1\n             CHECK (qty >= 1)\n);`],
+      ['Relational algebra', 'π: who has ordered?', `π[customer](Orders)`],
+      ['Relational algebra', 'σ then π: drinks', `π[item, price](σ[category = 'drink'](Menu))`],
+      ['Relational algebra', '∩: items that were ordered', `π[item](Menu) ∩ π[item](Orders)`],
     ],
   },
   {
@@ -975,6 +1055,9 @@ const DATASETS = [
       ['DML', 'Mixed rules: CASCADE then RESTRICT', `DELETE FROM Planets\nWHERE planet = 'Tatooine';`, { rules: { 'Characters.homeworld': { del: 'CASCADE' }, 'Flies.cid': { del: 'RESTRICT' } } }],
       ['DML', 'Rename the Falcon: ON UPDATE CASCADE', `UPDATE Ships\nSET ship = 'The Falcon'\nWHERE ship = 'Millennium Falcon';`, { rules: { 'Flies.ship': { upd: 'CASCADE' } } }],
       ['DDL', 'Star Wars schema', `CREATE TABLE Planets (\n  planet  VARCHAR(20) PRIMARY KEY,\n  climate VARCHAR(20)\n);\n\nCREATE TABLE Characters (\n  cid       INT PRIMARY KEY,\n  name      VARCHAR(30) NOT NULL,\n  species   VARCHAR(20),\n  homeworld VARCHAR(20)\n    REFERENCES Planets\n    ON DELETE SET NULL,\n  side      VARCHAR(5)\n    CHECK (side IN ('light', 'dark'))\n);\n\nCREATE TABLE Ships (\n  ship  VARCHAR(30) PRIMARY KEY,\n  class VARCHAR(30)\n);\n\nCREATE TABLE Flies (\n  cid  INT REFERENCES Characters\n         ON DELETE CASCADE,\n  ship VARCHAR(30) REFERENCES Ships,\n  PRIMARY KEY (cid, ship)\n);`],
+      ['Relational algebra', 'σ: the dark side', `σ[side = 'dark'](Characters)`],
+      ['Relational algebra', 'π: which species? (duplicates go)', `π[species](Characters)`],
+      ['Relational algebra', 'Theta join ⋈: where are they from?', `π[name, climate](Characters ⋈[homeworld = planet] Planets)`],
     ],
   },
   {
@@ -1012,6 +1095,9 @@ const DATASETS = [
       ['Joins', 'Who beats whom? (3 tables)', `SELECT a.name, b.name\nFROM Pokemon a\n  JOIN Types t\n    ON a.type = t.type\n  JOIN Pokemon b\n    ON t.beats = b.type;`],
       ['Joins', 'Nobody beats them', `SELECT p.name, p.type\nFROM Pokemon p\n  LEFT JOIN Types t\n    ON p.type = t.beats\nWHERE t.type IS NULL;`],
       ['Joins', 'Types that beat nothing', `SELECT type\nFROM Types\nWHERE beats IS NULL;`],
+      ['Relational algebra', 'σ: lots of HP', `σ[hp > 100](Pokemon)`],
+      ['Relational algebra', 'π: the types (duplicates go)', `π[type](Pokemon)`],
+      ['Relational algebra', 'Natural join ⋈ on type', `π[name, type, beats](Pokemon ⋈ Types)`],
     ],
   },
   {
@@ -1054,6 +1140,15 @@ const DATASETS = [
    "currentColor" follows the theme's ink so outlines work in light and dark.
    ===================================================================== */
 const ART = {
+  lec5: `<svg viewBox="0 0 240 160" role="img" aria-label="Headphones and music notes">
+    <path d="M60 104 V86 a56 56 0 0 1 112 0 V104" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round"/>
+    <rect x="44" y="96" width="30" height="46" rx="12" fill="#7b5cd6" stroke="currentColor" stroke-width="3"/>
+    <rect x="158" y="96" width="30" height="46" rx="12" fill="#7b5cd6" stroke="currentColor" stroke-width="3"/>
+    <g fill="#e0458b" stroke="currentColor" stroke-width="2">
+      <circle cx="200" cy="58" r="8"/><path d="M208 58 V24 l18 -6 V48" fill="none" stroke="#e0458b" stroke-width="4"/><circle cx="218" cy="50" r="8"/>
+    </g>
+    <g fill="#2bb5a8"><circle cx="30" cy="40" r="7"/><path d="M37 40 V12" stroke="#2bb5a8" stroke-width="4"/><path d="M37 12 q10 4 12 14" stroke="#2bb5a8" stroke-width="4" fill="none"/></g>
+  </svg>`,
   library: `<svg viewBox="0 0 240 160" role="img" aria-label="A bookshelf and a reading lamp">
     <rect x="24" y="126" width="160" height="10" rx="2" fill="#7a5230" stroke="currentColor" stroke-opacity=".35" stroke-width="2"/>
     <rect x="34" y="70" width="18" height="56" rx="2" fill="#2f6f5b"/><rect x="54" y="80" width="14" height="46" rx="2" fill="#c0562b"/>
@@ -1234,9 +1329,14 @@ function tokenize(src, lenient) {
       continue;
     }
     const two = src.slice(i, i + 2);
-    if (['<=', '>=', '<>', '!='].includes(two)) { toks.push({ t: 'op', v: two === '!=' ? '<>' : two, s, e: i + 2 }); i += 2; continue; }
+    if (['<=', '>=', '<>', '!=', ':='].includes(two)) { toks.push({ t: 'op', v: two === '!=' ? '<>' : two, s, e: i + 2 }); i += 2; continue; }
     if ('=<>+-*/'.includes(c)) { toks.push({ t: 'op', v: c, s, e: i + 1 }); i++; continue; }
-    if ('(),.;'.includes(c)) { toks.push({ t: 'p', v: c, s, e: i + 1 }); i++; continue; }
+    if ('(),.;[]{}'.includes(c)) { toks.push({ t: 'p', v: c, s, e: i + 1 }); i++; continue; }
+    /* relational algebra symbols */
+    if ('σπρ∪∩−×⋈⟕⟖⟗'.includes(c)) { toks.push({ t: 'ra', v: c, s, e: i + 1 }); i++; continue; }
+    if (c === '←') { toks.push({ t: 'op', v: ':=', s, e: i + 1 }); i++; continue; }
+    if (c === '∧' || c === '∨' || c === '¬') { const up = c === '∧' ? 'AND' : c === '∨' ? 'OR' : 'NOT'; toks.push({ t: 'kw', v: c, up, s, e: i + 1 }); i++; continue; }
+    if (c === '≠' || c === '≤' || c === '≥') { toks.push({ t: 'op', v: c === '≠' ? '<>' : c === '≤' ? '<=' : '>=', s, e: i + 1 }); i++; continue; }
     bad(`Unexpected character "${c}"`, s, s + 1);
   }
   toks.push({ t: 'eof', s: src.length, e: src.length });
@@ -1258,7 +1358,7 @@ function parse(src) {
   const expectP = v => { if (!isP(v)) err(`Expected "${v}" but found ${desc(peek())}`); return next(); };
   const last = () => toks[p - 1];
 
-  if (toks.length === 1) throw new SqlError('Type a query first (start with SELECT).', null, 0, 0);
+  if (toks.length === 1) throw new SqlError('Type a query first (start with SELECT), or a relational algebra expression such as σ[gpa > 3.5](Students).', null, 0, 0);
 
   function parseQuery() {
     const q = { depth, spans: {}, items: [], selectItems: [], star: false, distinct: false, where: null, groupBy: [], orderBy: [] };
@@ -1558,6 +1658,121 @@ function parse(src) {
     parseWhereOpt(q);
     return q;
   }
+  /* ---- relational algebra ---- */
+  const UNARY = { sigma: 'σ', select: 'σ', pi: 'π', project: 'π', rho: 'ρ', rename: 'ρ' };
+  const opensSub = k => isP('[', k) || isP('{', k) || (peek(k).t === 'id' && peek(k).v === '_');
+  function raSub(sym) {
+    if (peek().t === 'id' && peek().v === '_') next();
+    if (!isP('[') && !isP('{')) err(`${sym} needs its details in brackets, e.g. ${sym === 'σ' ? 'σ[gpa > 3.5](Students)' : sym === 'π' ? 'π[name](Students)' : sym === 'ρ' ? 'ρ[S1](Students)' : 'R ⋈[R.a = S.b] S'}`);
+    return next().v === '[' ? ']' : '}';
+  }
+  function raUnary() {
+    const t = peek();
+    let sym = null;
+    if (t.t === 'ra' && 'σπρ'.includes(t.v)) sym = t.v;
+    else if ((t.t === 'id' || (t.t === 'kw' && t.up === 'SELECT')) && UNARY[t.v.toLowerCase()] && opensSub(1)) sym = UNARY[t.v.toLowerCase()];
+    if (!sym) return raPrimary();
+    next();
+    const close = raSub(sym);
+    const node = { op: sym, s: t.s, headS: t.s };
+    if (sym === 'σ') { clause = 'σ'; node.cond = parseExpr(); }
+    else if (sym === 'π') {
+      node.cols = [];
+      for (;;) {
+        const a = peek();
+        if (a.t !== 'id') err('π lists attribute names, e.g. π[name, gpa](Students)');
+        next();
+        if (isP('.')) { next(); const b = peek(); if (b.t !== 'id') err('Expected an attribute name'); next(); node.cols.push({ type: 'col', q: a.v, name: b.v, s: a.s, e: b.e }); }
+        else node.cols.push({ type: 'col', q: null, name: a.v, s: a.s, e: a.e });
+        if (isP(',')) { next(); continue; }
+        break;
+      }
+    } else {
+      const n = peek();
+      if (n.t !== 'id') err('ρ needs a new name, e.g. ρ[S1](Students)');
+      next();
+      node.name = n.v;
+      if (isP('(')) {
+        next(); node.attrs = [];
+        for (;;) { const a = peek(); if (a.t !== 'id') err('Expected an attribute name'); next(); node.attrs.push(a.v); if (isP(',')) { next(); continue; } break; }
+        expectP(')');
+      }
+    }
+    if (!isP(close)) err(`Expected "${close}" to close the ${sym} details but found ${desc(peek())}`);
+    next();
+    node.headE = last().e;
+    if (!isP('(')) err(`${sym}[…] must be followed by a relation in parentheses, e.g. ${sym}[…](Students)`);
+    next();
+    node.x = raExpr();
+    expectP(')');
+    node.e = last().e;
+    return node;
+  }
+  function raPrimary() {
+    const t = peek();
+    if (isP('(')) { next(); const x = raExpr(); expectP(')'); return Object.assign({}, x, { s: t.s, e: last().e, paren: true }); }
+    if (t.t === 'id') { next(); return { op: 'rel', name: t.v, s: t.s, e: t.e }; }
+    err(`Expected a relation name, ( … ) or an operator such as σ, π, ρ, but found ${desc(t)}`);
+  }
+  const setOp = t => (t.t === 'ra' && '∪∩−'.includes(t.v) ? t.v : t.t === 'kw' && t.up === 'UNION' ? '∪' : t.t === 'kw' && t.up === 'INTERSECT' ? '∩'
+    : (t.t === 'kw' && t.up === 'EXCEPT') || (t.t === 'id' && t.v.toLowerCase() === 'minus') || (t.t === 'op' && t.v === '-') ? '−' : null);
+  const joinOp = t => (t.t === 'ra' && '⋈×'.includes(t.v) ? t.v : t.t === 'kw' && (t.up === 'JOIN' || t.up === 'NATURAL') ? '⋈' : t.t === 'kw' && t.up === 'CROSS' ? '×' : null);
+  function raJoin() {
+    let l = raUnary();
+    for (;;) {
+      const t = peek();
+      if (t.t === 'ra' && '⟕⟖⟗'.includes(t.v)) err('Outer joins are not supported in relational algebra mode here. Try them in SQL with LEFT, RIGHT or FULL JOIN.');
+      const op = joinOp(t);
+      if (!op) break;
+      next();
+      if ((t.up === 'NATURAL' || t.up === 'CROSS') && isKw('JOIN')) next();
+      const node = { op, l, s: l.s, opS: t.s };
+      if (op === '⋈' && opensSub(0)) {
+        const close = raSub('⋈');
+        clause = '⋈';
+        node.cond = parseExpr();
+        if (!isP(close)) err(`Expected "${close}" to close the join condition`);
+        next();
+      }
+      node.opE = last().e;
+      node.r = raUnary();
+      node.e = node.r.e;
+      l = node;
+    }
+    return l;
+  }
+  function raExpr() {
+    let l = raJoin();
+    for (;;) {
+      const t = peek();
+      const op = setOp(t);
+      if (!op) break;
+      next();
+      const r = raJoin();
+      l = { op, l, r, s: l.s, e: r.e, opS: t.s, opE: t.e };
+    }
+    return l;
+  }
+  function parseRAScript() {
+    clause = 'RA';
+    const stmts = [];
+    while (peek().t === 'id' && isOp(':=', 1)) {
+      const n = next(); next();
+      const x = raExpr();
+      stmts.push({ name: n.v, x, s: n.s, e: x.e });
+      if (isP(';')) next();
+    }
+    let final = null;
+    if (peek().t !== 'eof') { final = raExpr(); if (isP(';')) next(); }
+    if (peek().t !== 'eof') {
+      if (peek().t === 'id') err(`Unexpected "${peek().v}". To name a result, write it on its own line as Name := expression.`);
+      err(`Unexpected ${desc(peek())} after the end of the expression`);
+    }
+    if (!final && !stmts.length) err('Type a relational algebra expression, e.g. σ[gpa > 3.5](Students)');
+    if (!final) { const l = stmts[stmts.length - 1]; final = { op: 'rel', name: l.name, s: l.s, e: l.e, implicit: true }; }
+    return { kind: 'ra', stmts, final };
+  }
+
   /* ---- DDL: one or more CREATE TABLE statements ---- */
   function parseIdent(what) { const t = peek(); if (t.t !== 'id') err(`Expected ${what} but found ${desc(t)}`); next(); return t; }
   function parseNameList() {
@@ -1657,6 +1872,13 @@ function parse(src) {
     if (isP(';')) next();
     return tbl;
   }
+  /* relational algebra? (SQL statements always start with a keyword) */
+  const t0 = toks[0], t1 = toks[1] || {};
+  const raMode = toks.some(t => t.t === 'ra')
+    || (t0.t === 'id' && !toks.some(t => t.t === 'kw' && t.up === 'FROM'))
+    || (t0.t === 'p' && t0.v === '(')
+    || (t0.t === 'kw' && t0.up === 'SELECT' && ((t1.t === 'p' && (t1.v === '[' || t1.v === '{')) || (t1.t === 'id' && t1.v === '_')));
+  if (raMode) return parseRAScript();
   if (isKw('DROP') || isKw('ALTER')) throw new SqlError(`${peek().up} TABLE is not supported here. Write the tables with CREATE TABLE.`, 'CREATE', peek().s, peek().e);
   if (isKw('CREATE')) {
     const tables = [];
@@ -1922,7 +2144,7 @@ function buildTrace(src, opts) {
   const q = parse(src);
   const T = { steps: [], crumbs: [], src, opts: opts || {} };
   const root = { T, scopeId: 'main', scopeLabel: null, kind: 'main', extraLeft: [], scopeSpan: null, parentScope: null };
-  const result = q.kind === 'ddl' ? traceDDL(q, root) : q.kind ? traceDML(q, root) : traceQuery(q, root);
+  const result = q.kind === 'ra' ? traceRA(q, root) : q.kind === 'ddl' ? traceDDL(q, root) : q.kind ? traceDML(q, root) : traceQuery(q, root);
   return { steps: T.steps, crumbs: T.crumbs, result, dml: !!q.kind };
 }
 
@@ -3233,13 +3455,272 @@ function traceDDL(q, ctx) {
   return { rid: 'ddl', rows: [], cols: [] };
 }
 
+/* ======================= RELATIONAL ALGEBRA ======================= */
+function traceRA(q, ctx) {
+  const T = ctx.T, src = T.src;
+  const E = (msg, n) => new SqlError(msg, 'RA', n ? n.s : undefined, n ? n.e : undefined);
+  const env = {};
+  const usedBase = [];
+  const short = (s, k) => (s.length > k ? s.slice(0, k - 1) + '…' : s);
+  const tt = n => short(text(src, n), 34);
+  const multiQ = rel => new Set(rel.cols.map(c => c.q)).size > 1 || new Set(rel.cols.map(c => c.name.toLowerCase())).size < rel.cols.length;
+  const spec = (rel, o = {}) => tableSpec(rel, Object.assign({ qual: multiQ(rel) }, o));
+  const sig = r => JSON.stringify(r.vals);
+  const carry = (I, r, idx) => {
+    const ix = idx || r.vals.map((_, j) => j);
+    return { key: r.key, vals: ix.map(i => r.vals[i]), src: ix.map(i => ck(I, r, i)) };
+  };
+  const family = (rel, j) => {
+    for (const r of rel.rows) { const v = r.vals[j]; if (v === null) continue; return typeof v === 'number' ? 'number' : isDate(v) ? 'date' : typeof v === 'string' ? 'text' : typeof v; }
+    return null;
+  };
+  const colName = c => (c.q ? `${c.q}.${c.name}` : c.name);
+  const resolveIn = (rel, n) => {
+    const lc = n.name.toLowerCase();
+    const hits = rel.cols.map((c, j) => ({ c, j })).filter(h => h.c.name.toLowerCase() === lc && (!n.q || String(h.c.q || '').toLowerCase() === n.q.toLowerCase()));
+    if (!hits.length) {
+      if (n.q && !rel.cols.some(c => String(c.q || '').toLowerCase() === n.q.toLowerCase()))
+        throw E(`Nothing here is called ${n.q}. Relation names available: ${[...new Set(rel.cols.map(c => c.q))].join(', ')}.`, n);
+      throw E(`No attribute "${n.q ? n.q + '.' : ''}${n.name}". Attributes here: ${rel.cols.map(colName).join(', ')}.`, n);
+    }
+    if (hits.length > 1) throw E(`"${n.name}" is ambiguous: ${hits.map(h => colName(h.c)).join(' or ')}. Write the qualified name, or use ρ to rename one side.`, n);
+    return hits[0].j;
+  };
+  const bindCond = (cond, rel) => walk(cond, x => {
+    if (x.type === 'col') x.idx = resolveIn(rel, x);
+    if (x.type === 'agg') throw E('Aggregates such as COUNT are SQL; they are not part of basic relational algebra.', x);
+    if (x.type === 'sub') throw E('Subqueries are SQL; in relational algebra, name the inner result with := instead.', x);
+  });
+  const labelOf = rel => {
+    const qs = [...new Set(rel.cols.map(c => c.q))];
+    const picks = qs.map(qq => {
+      const idx = rel.cols.map((c, j) => j).filter(j => rel.cols[j].q === qq);
+      const nm = idx.find(j => ['name', 'title'].includes(rel.cols[j].name.toLowerCase()));
+      if (nm !== undefined) return nm;
+      const tx = idx.find(j => rel.rows.some(r => typeof r.vals[j] === 'string'));
+      return tx !== undefined ? tx : idx[0];
+    });
+    return r => picks.map(j => fmt(r.vals[j])).join(' · ');
+  };
+  const grid = (L, R, state, active, id) => ({
+    kind: 'grid', id, aTitle: L.title, bTitle: R.title,
+    rowLabels: L.rows.map(labelOf(L)), colLabels: R.rows.map(labelOf(R)),
+    cells: L.rows.map((a, i) => R.rows.map((b, j) => state(i, j))), active,
+  });
+  const crumb = n => {
+    if (n.op === 'σ') return `σ ${short(text(src, n.cond), 15)}`;
+    if (n.op === 'π') return `π ${short(n.cols.map(c => (c.q ? c.q + '.' : '') + c.name).join(', '), 15)}`;
+    if (n.op === 'ρ') return `ρ ${n.name}`;
+    if (n.op === '⋈') return n.cond ? '⋈ θ' : '⋈ natural';
+    return n.op;
+  };
+  const marks = n => ({ hl: [[n.s, n.e]], hl2: [n.headS !== undefined ? [n.headS, n.headE] : [n.opS, n.opE]] });
+
+  /* ---- operators ---- */
+  const lookup = (n, sc) => {
+    const own = env[n.name.toLowerCase()];
+    if (own) return own;
+    const tname = Object.keys(DB).find(k => k.toLowerCase() === n.name.toLowerCase());
+    if (!tname) throw E(`There is no relation called "${n.name}". Relations: ${Object.keys(DB).concat(Object.values(env).map(r => r.title)).join(', ')}.`, n);
+    if (!usedBase.includes(tname)) usedBase.push(tname);
+    return baseRel(tname, tname, false);
+  };
+  const select = (n, I, sc) => {
+    CUR.clause = 'σ';
+    bindCond(n.cond, I);
+    const refs = refCols(n.cond);
+    const pass = I.rows.map(r => evalE(n.cond, r.vals, null) === true);
+    const O = { rid: newRid('A'), title: tt(n), cols: I.cols, rows: I.rows.filter((r, i) => pass[i]).map(r => carry(I, r)) };
+    const colCls = I.cols.map((c, j) => (refs.has(j) ? 'chk' : ''));
+    push(sc, 'σ', { crumbLabel: crumb(n), ...marks(n), left: [spec(I, { colCls })], right: [placeholder('?')], caption: 'Which tuples satisfy the condition?' });
+    push(sc, 'σ', {
+      crumbLabel: crumb(n), ...marks(n),
+      left: [spec(I, { colCls, rowCls: (r, i) => (pass[i] ? 'pass' : 'fail'), mark: (r, i) => (pass[i] ? 'yes' : 'no') })],
+      right: [spec(O, { cls: 'out' })], caption: `${O.rows.length} of ${I.rows.length} tuples kept (same attributes)`,
+    });
+    return O;
+  };
+  const project = (n, I, sc) => {
+    const idx = n.cols.map(c => resolveIn(I, c));
+    const BAG = { rid: newRid('A'), title: tt(n), cols: idx.map(i => I.cols[i]), rows: I.rows.map(r => carry(I, r, idx)) };
+    const colCls = I.cols.map((c, j) => (idx.includes(j) ? 'sel' : 'drop'));
+    push(sc, 'π', { crumbLabel: crumb(n), ...marks(n), left: [spec(I, { colCls })], right: [placeholder('?')], caption: 'Which attributes stay?' });
+    const counts = new Map();
+    BAG.rows.forEach(r => counts.set(sig(r), (counts.get(sig(r)) || 0) + 1));
+    if ([...counts.values()].every(c => c === 1)) {
+      push(sc, 'π', { crumbLabel: crumb(n), ...marks(n), left: [spec(I, { colCls })], right: [spec(BAG, { cls: 'out' })], caption: 'No duplicate tuples to remove' });
+      return BAG;
+    }
+    const color = new Map();
+    let k = 0;
+    BAG.rows.forEach(r => { const s = sig(r); if (counts.get(s) > 1 && !color.has(s)) color.set(s, k++ % GROUP_COLORS); });
+    const tint = r => (color.has(sig(r)) ? `g${color.get(sig(r))}` : '');
+    push(sc, 'π', { crumbLabel: crumb(n), ...marks(n), left: [spec(I, { colCls })], right: [spec(BAG, { rowCls: tint })], caption: 'Same colour = duplicate tuples' });
+    const seen = new Set();
+    const repeat = BAG.rows.map(r => { const s = sig(r); if (seen.has(s)) return true; seen.add(s); return false; });
+    const SET = { rid: newRid('A'), title: tt(n), cols: BAG.cols, rows: BAG.rows.filter((r, i) => !repeat[i]).map(r => carry(BAG, r)) };
+    push(sc, 'π', {
+      crumbLabel: crumb(n), ...marks(n),
+      left: [spec(BAG, { rowCls: (r, i) => `${tint(r)} ${repeat[i] ? 'fail' : ''}`, mark: (r, i) => (repeat[i] ? 'dup' : null) })],
+      right: [spec(SET, { rowCls: tint, cls: 'out' })],
+      caption: `π removes duplicates: ${BAG.rows.length} → ${SET.rows.length} tuples (SQL SELECT would keep them)`,
+    });
+    return SET;
+  };
+  const rename = (n, I, sc) => {
+    if (n.attrs && n.attrs.length !== I.cols.length) throw E(`ρ[${n.name}(…)] gives ${n.attrs.length} attribute names, but the relation has ${I.cols.length}: ${I.cols.map(c => c.name).join(', ')}.`, n);
+    const O = { rid: newRid('A'), title: n.name, badge: n.name, cols: I.cols.map((c, j) => ({ name: n.attrs ? n.attrs[j] : c.name, q: n.name })), rows: I.rows.map(r => carry(I, r)) };
+    push(sc, 'ρ', {
+      crumbLabel: crumb(n), ...marks(n), left: [spec(I)], right: [spec(O, { cls: 'out', colCls: n.attrs ? O.cols.map(() => 'sort') : null })],
+      caption: `Same tuples, now called ${n.name}${n.attrs ? ` with attributes (${n.attrs.join(', ')})` : ''}`,
+    });
+    return O;
+  };
+  const productRows = (L, R) => {
+    const rows = [];
+    L.rows.forEach(a => R.rows.forEach(b => rows.push({ key: `${a.key}+${b.key}`, vals: a.vals.concat(b.vals), src: a.vals.map((_, j) => ck(L, a, j)).concat(b.vals.map((_, j) => ck(R, b, j))) })));
+    return rows;
+  };
+  const sameNames = (L, R) => L.title.toLowerCase() === R.title.toLowerCase() || L.cols.some(c => R.cols.some(d => c.q && c.q === d.q));
+  const cross = (n, L, R, sc) => {
+    const O = { rid: newRid('A'), title: tt(n), cols: L.cols.concat(R.cols), rows: productRows(L, R) };
+    const a = L.rows.length, b = R.rows.length;
+    const clash = sameNames(L, R) ? ' Both sides have the same name, so use ρ to tell them apart.' : '';
+    push(sc, '×', { crumbLabel: '×', ...marks(n), left: [spec(L), spec(R)], right: [placeholder('?')], caption: `${a} × ${b} = ?` });
+    push(sc, '×', {
+      crumbLabel: '×', ...marks(n), left: [spec(L), spec(R)],
+      right: [grid(L, R, () => 'p', -1, `g${O.rid}`)].concat(O.rows.length <= 40 ? [spec(O, { cls: 'out' })] : []),
+      caption: `${a} × ${b} = ${a * b} tuples: every pair.${clash}`,
+    });
+    return O;
+  };
+  const join = (n, L, R, sc) => {
+    CUR.clause = '⋈';
+    const Lw = L.cols.length;
+    const P = { cols: L.cols.concat(R.cols) };
+    let common = [];
+    if (n.cond) bindCond(n.cond, P);
+    else L.cols.forEach((c, i) => { const j = R.cols.findIndex(d => d.name.toLowerCase() === c.name.toLowerCase()); if (j >= 0 && !common.some(x => x[1] === j)) common.push([i, j]); });
+    const test = (a, b) => (n.cond ? evalE(n.cond, a.vals.concat(b.vals), null) === true : common.every(([i, j]) => a.vals[i] !== null && a.vals[i] === b.vals[j]));
+    const pass = L.rows.map(a => R.rows.map(b => test(a, b)));
+    const PR = { rid: newRid('A'), title: tt(n), cols: P.cols, rows: [] };
+    L.rows.forEach((a, i) => R.rows.forEach((b, j) => { if (pass[i][j]) PR.rows.push({ key: `${a.key}+${b.key}`, vals: a.vals.concat(b.vals), src: a.vals.map((_, k) => ck(L, a, k)).concat(b.vals.map((_, k) => ck(R, b, k))) }); }));
+    const refs = n.cond ? refCols(n.cond) : new Set(common.flatMap(([i, j]) => [i, Lw + j]));
+    const lCls = L.cols.map((c, j) => (refs.has(j) ? 'chk' : ''));
+    const rCls = R.cols.map((c, j) => (refs.has(Lw + j) ? 'chk' : ''));
+    const names = common.map(([i]) => L.cols[i].name).join(', ');
+    const gid = `g${PR.rid}`;
+    const nl = L.rows.length, nr = R.rows.length;
+    push(sc, '⋈', {
+      crumbLabel: crumb(n), ...marks(n), left: [spec(L, { colCls: lCls }), spec(R, { colCls: rCls })],
+      right: [grid(L, R, () => 'n', -1, gid)],
+      caption: n.cond ? 'Keep the pairs where the condition holds' : common.length ? `Natural join: pairs must agree on ${names}` : 'No attribute names in common, so this natural join is just ×',
+    });
+    let kept = 0;
+    const lab = labelOf(L);
+    for (let i = 0; i < nl; i++) {
+      const ok = pass[i].filter(Boolean).length;
+      kept += ok;
+      push(sc, '⋈', {
+        crumbLabel: crumb(n), ...marks(n),
+        left: [
+          spec(L, { colCls: lCls, rowCls: (r, ii) => (ii === i ? 'active' : 'pending'), cellCls: (r, ii, j) => (ii === i && refs.has(j) ? 'chk2' : '') }),
+          spec(R, { colCls: rCls, rowCls: (r, jj) => (pass[i][jj] ? 'pass' : 'fail'), cellCls: (r, jj, j) => (refs.has(Lw + j) ? 'chk2' : ''), mark: (r, jj) => (pass[i][jj] ? 'yes' : 'no') }),
+        ],
+        right: [grid(L, R, (ii, jj) => (ii <= i ? (pass[ii][jj] ? 'p' : 'f') : 'n'), i, gid)].concat(kept ? [spec(Object.assign({}, PR, { rows: PR.rows.slice(0, kept) }), { cls: 'out' })] : []),
+        caption: `${lab(L.rows[i])}: ${ok ? `${ok} match${ok > 1 ? 'es' : ''}` : 'no match'}`,
+      });
+    }
+    if (n.cond || !common.length) return PR;
+    const dropR = new Set(common.map(([, j]) => Lw + j));
+    const keep = PR.cols.map((c, j) => j).filter(j => !dropR.has(j));
+    const O = { rid: newRid('A'), title: tt(n), cols: keep.map(j => PR.cols[j]), rows: PR.rows.map(r => carry(PR, r, keep)) };
+    push(sc, '⋈', {
+      crumbLabel: crumb(n), ...marks(n), left: [spec(PR, { colCls: PR.cols.map((c, j) => (dropR.has(j) ? 'drop' : '')) })], right: [spec(O, { cls: 'out' })],
+      caption: `Natural join keeps one copy of ${names}`,
+    });
+    return O;
+  };
+  const setop = (n, L, R, sc) => {
+    CUR.clause = n.op;
+    if (L.cols.length !== R.cols.length)
+      throw E(`Not union-compatible: the left side has ${L.cols.length} attribute${L.cols.length === 1 ? '' : 's'} (${L.cols.map(c => c.name).join(', ')}) but the right side has ${R.cols.length} (${R.cols.map(c => c.name).join(', ')}).`, n);
+    L.cols.forEach((c, j) => {
+      const a = family(L, j), b = family(R, j);
+      if (a && b && a !== b) throw E(`Not union-compatible: ${colName(c)} holds ${a} values but ${colName(R.cols[j])} holds ${b} values.`, n);
+    });
+    const inR = new Set(R.rows.map(sig)), inL = new Set(L.rows.map(sig));
+    let rows;
+    if (n.op === '∪') rows = L.rows.map(r => carry(L, r)).concat(R.rows.filter(r => !inL.has(sig(r))).map(r => carry(R, r)));
+    else if (n.op === '∩') rows = L.rows.filter(r => inR.has(sig(r))).map(r => carry(L, r));
+    else rows = L.rows.filter(r => !inR.has(sig(r))).map(r => carry(L, r));
+    const seen = new Set();
+    rows = rows.filter(r => { const s = sig(r); if (seen.has(s)) return false; seen.add(s); return true; });
+    const O = { rid: newRid('A'), title: tt(n), cols: L.cols, rows };
+    const renamed = L.cols.some((c, j) => c.name.toLowerCase() !== R.cols[j].name.toLowerCase());
+    const head = L.cols.map(() => 'sel');
+    push(sc, n.op, {
+      crumbLabel: n.op, ...marks(n), left: [spec(L, { colCls: head }), spec(R, { colCls: R.cols.map(() => 'sel') })], right: [placeholder('?')],
+      caption: `Union-compatible: ${L.cols.length} attribute${L.cols.length === 1 ? '' : 's'} each, matching types${renamed ? '; names come from the left' : ''}`,
+    });
+    const both = r => (inR.has(sig(r)) && inL.has(sig(r)));
+    const kept = n.op === '∪' ? () => true : n.op === '∩' ? r => inR.has(sig(r)) : r => !inR.has(sig(r));
+    const what = { '∪': 'in either one', '∩': 'in both', '−': 'in the left but not the right' }[n.op];
+    push(sc, n.op, {
+      crumbLabel: n.op, ...marks(n),
+      left: [
+        spec(L, { rowCls: r => `${both(r) ? 'g3' : 'g0'} ${kept(r) ? '' : 'fail'}`, mark: r => (n.op === '∪' ? null : kept(r) ? 'yes' : 'no') }),
+        spec(R, { rowCls: r => `${inL.has(sig(r)) ? 'g3' : 'g1'} ${n.op === '∪' && inL.has(sig(r)) ? 'fail' : ''}`, mark: r => (n.op === '∪' && inL.has(sig(r)) ? 'dup' : null) }),
+      ],
+      right: [spec(O, { cls: 'out', rowCls: r => (both(r) ? 'g3' : inL.has(sig(r)) ? 'g0' : 'g1') })],
+      caption: `${O.rows.length} tuple${O.rows.length === 1 ? '' : 's'} ${what}${L.rows.some(r => inR.has(sig(r))) ? ' (green = in both)' : ''}`,
+    });
+    return O;
+  };
+
+  const ev = (n, sc) => {
+    switch (n.op) {
+      case 'rel': return lookup(n, sc);
+      case 'σ': return select(n, ev(n.x, sc), sc);
+      case 'π': return project(n, ev(n.x, sc), sc);
+      case 'ρ': return rename(n, ev(n.x, sc), sc);
+      case '×': { const L = ev(n.l, sc); return cross(n, L, ev(n.r, sc), sc); }
+      case '⋈': { const L = ev(n.l, sc); return join(n, L, ev(n.r, sc), sc); }
+      default: { const L = ev(n.l, sc); return setop(n, L, ev(n.r, sc), sc); }
+    }
+  };
+
+  const many = q.stmts.length > 0;
+  q.stmts.forEach((st, k) => {
+    const sc = { T, scopeId: `ra:${k}`, scopeLabel: `${st.name} :=`, kind: 'ra', extraLeft: [], scopeSpan: null };
+    const before = T.steps.length;
+    const res = ev(st.x, sc);
+    const named = Object.assign({}, res, { title: st.name, badge: null, tag: 'temporary', cols: res.cols.map(c => ({ name: c.name, q: st.name })) });
+    if (T.steps.length === before) push(sc, 'REL', { crumbLabel: st.name, hl: [[st.s, st.e]], left: [spec(res)], right: [spec(named, { cls: 'temp' })], caption: `${st.name} is another name for ${res.title}` });
+    else push(sc, 'ASSIGN', { crumbLabel: `→ ${st.name}`, hl: [[st.s, st.e]], left: [spec(res)], right: [spec(named, { cls: 'temp' })], caption: `This relation is now called ${st.name}` });
+    env[st.name.toLowerCase()] = named;
+  });
+  const fsc = { T, scopeId: 'ra:final', scopeLabel: many ? 'result' : null, kind: 'ra', extraLeft: [], scopeSpan: null };
+  const before = T.steps.length;
+  const out = ev(q.final, fsc);
+  if (T.steps.length === before && !q.final.implicit)
+    push(fsc, 'REL', { crumbLabel: q.final.name, hl: [[q.final.s, q.final.e]], left: [], right: [spec(out)], caption: 'A relation on its own is already an expression' });
+  const result = Object.assign({}, out, { title: 'Result' });
+  push(fsc, 'RESULT', {
+    hl: [], left: usedBase.map(t => spec(baseRel(t, t, false))).concat(Object.values(env).map(r => spec(r, { cls: 'temp' }))),
+    right: [spec(result, { cls: 'final', tag: null })],
+    caption: `${result.rows.length} tuple${result.rows.length === 1 ? '' : 's'}`,
+  });
+  return result;
+}
+
 if (typeof module !== 'undefined') module.exports = { setDataset, parse, tokenize, buildTrace, SqlError, fmt };
 
 /* =====================================================================
    UI: renders trace snapshots; all motion is derived from what changed
    between two consecutive snapshots (same key => same piece of data).
    ===================================================================== */
-const STAGE_CLS = { 'CREATE': 'ddl', 'PRIMARY KEY': 'con', 'CONSTRAINT': 'con', 'FOREIGN KEY': 'fk', 'DELETE': 'del', 'SET': 'upd', 'FK': 'fk', 'FROM': 'from', 'JOIN': 'join', 'WHERE': 'where', 'GROUP BY': 'group', 'SELECT': 'select', 'DISTINCT': 'distinct', 'ORDER BY': 'order', 'RESULT': 'result' };
+const STAGE_CLS = { 'σ': 'where', 'π': 'select', 'ρ': 'order', '×': 'join', '⋈': 'join', '∪': 'group', '∩': 'group', '−': 'group', 'REL': 'from', 'ASSIGN': 'ddl', 'CREATE': 'ddl', 'PRIMARY KEY': 'con', 'CONSTRAINT': 'con', 'FOREIGN KEY': 'fk', 'DELETE': 'del', 'SET': 'upd', 'FK': 'fk', 'FROM': 'from', 'JOIN': 'join', 'WHERE': 'where', 'GROUP BY': 'group', 'SELECT': 'select', 'DISTINCT': 'distinct', 'ORDER BY': 'order', 'RESULT': 'result' };
 const CLOUD = 'M26,22 A49,49 0 0 1 108,22 A69,69 0 0 1 212,22 A57,57 0 0 1 311,22 A67,67 0 0 1 415,22 A53,53 0 0 1 503,22 A44,44 0 0 1 574,22 A32,32 0 0 1 574,80 A61,61 0 0 1 475,80 A70,70 0 0 1 355,80 A80,80 0 0 1 234,80 A69,69 0 0 1 119,80 A58,58 0 0 1 26,80 A32,32 0 0 1 26,22 Z';
 const SPEEDS = { slow: 3400, normal: 2200, fast: 1200 };
 
@@ -3259,6 +3740,8 @@ function editorHtml(src, step, err) {
   const toks = tokenize(src, true);
   toks.forEach((t, ti) => {
     if (t.t === 'kw') add(t.s, t.e, 'tk-k');
+    else if (t.t === 'ra') add(t.s, t.e, 'tk-ra');
+    else if (t.t === 'op' && t.v === ':=') add(t.s, t.e, 'tk-ra');
     else if (t.t === 'id' && /^(COUNT|AVG|SUM|MIN|MAX)$/i.test(t.v) && toks[ti + 1] && toks[ti + 1].v === '(') add(t.s, t.e, 'tk-f');
     else if (t.t === 'str') add(t.s, t.e, 'tk-s');
     else if (t.t === 'num') add(t.s, t.e, 'tk-n');
@@ -3761,6 +4244,31 @@ $('#fks').addEventListener('change', e => {
   if (state.trace) run(); else renderFks();
 });
 $('#egg').addEventListener('click', e => { if (e.target.closest('.egg-x')) hideEgg(); });
+/* relational algebra keyboard: symbols that are hard to type */
+const RA_KEYS = [
+  ['σ', 'σ[]()', 2, 'Selection σ[condition](R)  (or: select[…](R))'],
+  ['π', 'π[]()', 2, 'Projection π[a, b](R)  (or: project[…](R))'],
+  ['ρ', 'ρ[]()', 2, 'Rename ρ[S](R) or ρ[S(a, b)](R)  (or: rename[…](R))'],
+  ['⋈', ' ⋈ ', 0, 'Natural join R ⋈ S, or theta join R ⋈[cond] S  (or: join)'],
+  ['×', ' × ', 0, 'Cross product  (or: cross)'],
+  ['∪', ' ∪ ', 0, 'Union  (or: union)'],
+  ['∩', ' ∩ ', 0, 'Intersection  (or: intersect)'],
+  ['−', ' − ', 0, 'Difference  (or: minus, -)'],
+  ['∧', ' ∧ ', 0, 'and'], ['∨', ' ∨ ', 0, 'or'], ['¬', '¬', 0, 'not'],
+  [':=', ' := ', 0, 'Name a result: R := expression  (or: ←)'],
+];
+$('#rabar').innerHTML = '<span class="ra-lbl">RA</span>' + RA_KEYS.map((k, i) => `<button class="rak" data-i="${i}" title="${esc(k[3])}">${esc(k[0])}</button>`).join('');
+$('#rabar').addEventListener('click', e => {
+  const b = e.target.closest('.rak');
+  if (!b) return;
+  const [, ins, back] = RA_KEYS[+b.dataset.i];
+  const s = ta.selectionStart;
+  ta.setRangeText(ins, s, ta.selectionEnd, 'end');
+  const pos = s + ins.length - (back ? ins.length - ins.indexOf('[') - 1 : 0);
+  ta.focus();
+  ta.setSelectionRange(pos, pos);
+  ta.dispatchEvent(new Event('input'));
+});
 $('#crumbs').addEventListener('click', e => {
   const d = e.target.closest('[data-step]');
   if (d) { stop(); go(+d.dataset.step); return; }
