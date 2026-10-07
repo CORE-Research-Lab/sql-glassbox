@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SQL Simulator CSC343</title>
+<title>SQL Glassbox · CSC343</title>
 <style>
 :root {
   --scale: 1.35;
@@ -603,20 +603,26 @@ header { position: relative; z-index: 2; }
 
 /* ---------- relational algebra ---------- */
 .tk-ra { color: var(--from); font-weight: 800; }
-.rabar { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; margin-top: -.3rem; }
+.rabar { display: flex; flex-wrap: wrap; gap: .2rem; align-items: center; margin-top: -.3rem; }
 .ra-lbl { font-size: .7rem; color: var(--faint); font-weight: 700; margin-right: .2rem; letter-spacing: .05em; }
-.rak { font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", "DejaVu Sans", var(--mono); font-size: .95rem; min-width: 1.75rem; height: 1.7rem;
-  border: 1px solid var(--line-soft); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; padding: 0 .35rem; }
+.rak { font-family: "Cambria Math", "STIX Two Math", "Latin Modern Math", "DejaVu Sans", var(--mono); font-size: .9rem; min-width: 1.55rem; height: 1.65rem;
+  border: 1px solid var(--line-soft); background: var(--panel); color: var(--ink); border-radius: 6px; cursor: pointer; padding: 0 .25rem; }
 .rak:hover { border-color: var(--from); color: var(--from); }
 
 .tbl .td.mk { background: transparent; box-shadow: none; }
 
+
+/* ---------- HAVING / UNKNOWN ---------- */
+.mk.unk { color: var(--where); font-size: .8em; }
+.panel.group.gfail { opacity: .4; }
+.panel.group .note { font-family: var(--mono); font-size: .8rem; }
 </style>
 </head>
 <body>
 <header>
   <div class="brand">
-    <h1><span id="emblem" aria-hidden="true"></span>SQL, step by step</h1>
+    <h1><span id="emblem" aria-hidden="true"></span>SQL Glassbox</h1>
+    <p>What a query means, not how a database engine runs it.</p>
   </div>
   <div class="spacer"></div>
   <div class="presets">
@@ -706,25 +712,33 @@ const DATASETS = [
       },
     ],
     presets: [
-      ['Lecture 4', 'Basic SELECT', `SELECT name, major\nFROM Students;`],
-      ['Lecture 4', 'SELECT + WHERE', `SELECT name, gpa\nFROM Students\nWHERE gpa > 3.5;`],
-      ['Lecture 4', 'Multiple conditions', `SELECT name\nFROM Students\nWHERE major = 'Math'\n  AND gpa >= 3.7;`],
-      ['Lecture 4', 'Students and Takes', `-- Which students are enrolled in CSC108?\nSELECT name\nFROM Takes, Students\nWHERE Takes.course = 'CSC108'\n  AND Takes.sid = Students.sid;`],
-      ['Lecture 4', 'Tuple variables s1, s2', `SELECT s1.name, s2.name\nFROM Students s1, Students s2\nWHERE s1.major = s2.major\n  AND s1.name < s2.name;`],
-      ['Lecture 4', 'Subquery in FROM', `SELECT course\nFROM Takes,\n  (SELECT sid\n   FROM Students\n   WHERE major = 'CS') CSStudents\nWHERE Takes.sid = CSStudents.sid;`],
-      ['Lecture 4', 'Scalar subquery', `SELECT course, credits\nFROM Courses\nWHERE credits =\n  (SELECT MAX(credits)\n   FROM Courses);`],
-      ['Lecture 4', 'DISTINCT', `SELECT DISTINCT major\nFROM Students;`],
-      ['Lecture 4', 'ORDER BY', `SELECT name\nFROM Instructors\nORDER BY name ASC;`],
-      ['Lecture 4', 'COUNT', `SELECT COUNT(*)\nFROM Takes\nWHERE course = 'CSC108';`],
-      ['Lecture 4', 'AVG', `SELECT AVG(gpa)\nFROM Students;`],
-      ['Lecture 4', 'COUNT(DISTINCT …)', `SELECT COUNT(DISTINCT course)\nFROM Takes;`],
-      ['Lecture 4', 'GROUP BY + aggregate', `SELECT major, AVG(gpa)\nFROM Students\nGROUP BY major;`],
-      ['Joins', 'JOIN … ON', `SELECT s.name, t.course\nFROM Students s\n  JOIN Takes t\n    ON s.sid = t.sid;`],
-      ['Joins', 'LEFT JOIN keeps Farid', `SELECT s.name, t.course\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid;`],
-      ['Joins', 'Who takes nothing?', `SELECT s.name\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid\nWHERE t.sid IS NULL;`],
-      ['Joins', 'COUNT after LEFT JOIN', `SELECT s.name, COUNT(t.course)\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid\nGROUP BY s.name;`],
-      ['Joins', 'RIGHT JOIN: untaken courses', `SELECT t.sid, c.course\nFROM Takes t\n  RIGHT JOIN Courses c\n    ON t.course = c.course;`],
-      ['Joins', 'Three tables', `SELECT s.name, c.course, c.credits\nFROM Students s\n  JOIN Takes t\n    ON s.sid = t.sid\n  JOIN Courses c\n    ON t.course = c.course;`],
+      ['DQL: Lecture 4', 'Basic SELECT', `SELECT name, major\nFROM Students;`],
+      ['DQL: Lecture 4', 'SELECT + WHERE', `SELECT name, gpa\nFROM Students\nWHERE gpa > 3.5;`],
+      ['DQL: Lecture 4', 'Multiple conditions', `SELECT name\nFROM Students\nWHERE major = 'Math'\n  AND gpa >= 3.7;`],
+      ['DQL: Lecture 4', 'Students and Takes', `-- Which students are enrolled in CSC108?\nSELECT name\nFROM Takes, Students\nWHERE Takes.course = 'CSC108'\n  AND Takes.sid = Students.sid;`],
+      ['DQL: Lecture 4', 'Tuple variables s1, s2', `SELECT s1.name, s2.name\nFROM Students s1, Students s2\nWHERE s1.major = s2.major\n  AND s1.name < s2.name;`],
+      ['DQL: Lecture 4', 'Subquery in FROM', `SELECT course\nFROM Takes,\n  (SELECT sid\n   FROM Students\n   WHERE major = 'CS') CSStudents\nWHERE Takes.sid = CSStudents.sid;`],
+      ['DQL: Lecture 4', 'Scalar subquery', `SELECT course, credits\nFROM Courses\nWHERE credits =\n  (SELECT MAX(credits)\n   FROM Courses);`],
+      ['DQL: Lecture 4', 'DISTINCT', `SELECT DISTINCT major\nFROM Students;`],
+      ['DQL: Lecture 4', 'ORDER BY', `SELECT name\nFROM Instructors\nORDER BY name ASC;`],
+      ['DQL: Lecture 4', 'COUNT', `SELECT COUNT(*)\nFROM Takes\nWHERE course = 'CSC108';`],
+      ['DQL: Lecture 4', 'AVG', `SELECT AVG(gpa)\nFROM Students;`],
+      ['DQL: Lecture 4', 'COUNT(DISTINCT …)', `SELECT COUNT(DISTINCT course)\nFROM Takes;`],
+      ['DQL: Lecture 4', 'GROUP BY + aggregate', `SELECT major, AVG(gpa)\nFROM Students\nGROUP BY major;`],
+      ['DQL: joins', 'JOIN … ON', `SELECT s.name, t.course\nFROM Students s\n  JOIN Takes t\n    ON s.sid = t.sid;`],
+      ['DQL: joins', 'LEFT JOIN keeps Farid', `SELECT s.name, t.course\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid;`],
+      ['DQL: joins', 'Who takes nothing?', `SELECT s.name\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid\nWHERE t.sid IS NULL;`],
+      ['DQL: joins', 'COUNT after LEFT JOIN', `SELECT s.name, COUNT(t.course)\nFROM Students s\n  LEFT JOIN Takes t\n    ON s.sid = t.sid\nGROUP BY s.name;`],
+      ['DQL: joins', 'RIGHT JOIN: untaken courses', `SELECT t.sid, c.course\nFROM Takes t\n  RIGHT JOIN Courses c\n    ON t.course = c.course;`],
+      ['DQL: joins', 'Three tables', `SELECT s.name, c.course, c.credits\nFROM Students s\n  JOIN Takes t\n    ON s.sid = t.sid\n  JOIN Courses c\n    ON t.course = c.course;`],
+      ['DQL: joins', 'CROSS JOIN: every pair', `SELECT s.name, c.course\nFROM Students s\n  CROSS JOIN Courses c;`],
+      ['DQL: joins', 'FULL OUTER JOIN', `-- CS students, full-joined with the CSC108 enrolments\nSELECT cs.name, t.sid, t.course\nFROM (SELECT sid, name\n      FROM Students\n      WHERE major = 'CS') cs\n  FULL JOIN\n     (SELECT sid, course\n      FROM Takes\n      WHERE course = 'CSC108') t\n    ON cs.sid = t.sid;`],
+      ['DQL: set operations', 'UNION', `-- in CSC108 or in MAT136\nSELECT sid FROM Takes WHERE course = 'CSC108'\nUNION\nSELECT sid FROM Takes WHERE course = 'MAT136';`],
+      ['DQL: set operations', 'UNION ALL keeps duplicates', `SELECT sid FROM Takes WHERE course = 'CSC108'\nUNION ALL\nSELECT sid FROM Takes WHERE course = 'MAT136';`],
+      ['DQL: set operations', 'INTERSECT', `-- in CSC108 and in MAT136\nSELECT sid FROM Takes WHERE course = 'CSC108'\nINTERSECT\nSELECT sid FROM Takes WHERE course = 'MAT136';`],
+      ['DQL: set operations', 'EXCEPT: who takes nothing?', `SELECT sid FROM Students\nEXCEPT\nSELECT sid FROM Takes;`],
+      ['DQL: set operations', 'IN (SELECT …)', `SELECT name\nFROM Students\nWHERE sid IN (SELECT sid\n              FROM Takes\n              WHERE course = 'CSC108');`],
+      ['DQL: set operations', 'NOT IN: who takes nothing?', `SELECT name\nFROM Students\nWHERE sid NOT IN (SELECT sid\n                  FROM Takes);`],
       ['DML', 'DELETE a student: CASCADE', `DELETE FROM Students\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { del: 'CASCADE' } } }],
       ['DML', 'DELETE a student: SET NULL', `DELETE FROM Students\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { del: 'SET NULL' } } }],
       ['DML', 'DELETE a student: RESTRICT', `DELETE FROM Students\nWHERE name = 'Anya';`, { rules: { 'Takes.sid': { del: 'RESTRICT' } } }],
@@ -740,14 +754,106 @@ const DATASETS = [
       ['DDL', 'Oops: tables in the wrong order', `-- Try it: this one has a mistake.\nCREATE TABLE Takes (\n  sid    INT REFERENCES Students,\n  course VARCHAR(10),\n  PRIMARY KEY (sid, course)\n);\n\nCREATE TABLE Students (\n  sid  INT PRIMARY KEY,\n  name VARCHAR(30)\n);`],
       ['DDL', 'Oops: two primary keys', `-- Try it: this one has a mistake.\nCREATE TABLE Takes (\n  sid    INT PRIMARY KEY,\n  course VARCHAR(10) PRIMARY KEY\n);`],
       ['DDL', 'Oops: types don\'t match', `-- Try it: this one has a mistake.\nCREATE TABLE Courses (\n  course VARCHAR(10) PRIMARY KEY\n);\n\nCREATE TABLE Takes (\n  sid    INT,\n  course INT REFERENCES Courses\n);`],
-      ['Relational algebra', 'Natural join ⋈', `Students ⋈ Takes`],
-      ['Relational algebra', 'Who takes nothing? (−)', `π[sid](Students) − π[sid](Takes)`],
-      ['Relational algebra', 'Names of CSC108 students', `π[name](σ[course = 'CSC108'](Students ⋈ Takes))`],
+      ['RA', 'Natural join ⋈', `Students ⋈ Takes`],
+      ['RA', 'Who takes nothing? (−)', `π[sid](Students) − π[sid](Takes)`],
+      ['RA', 'Names of CSC108 students', `π[name](σ[course = 'CSC108'](Students ⋈ Takes))`],
+      ['RA', 'Left outer join ⟕: Farid stays', `Students ⟕ Takes`],
+      ['RA', 'Right outer join ⟖: BIO120 stays', `Takes ⟖ Courses`],
+      ['RA', 'Full outer join ⟗', `σ[major = 'CS'](Students)\n  ⟗\nσ[course = 'CSC108'](Takes)`],
+      ['RA', 'Outer join, then IS NULL', `π[name](σ[course IS NULL](Students ⟕ Takes))`],
+    ],
+  },
+  {
+    id: 'library5', theme: 'library', emoji: '📚',
+    name: 'Community Library (Tutorial 5)',
+    colFormats: { replacement_cost: '2dp', fine_amount: '2dp' },
+    fks: [{ child: 'loan', col: 'book_copy_id', parent: 'book_copy', pcol: 'book_copy_id' }],
+    tables: {
+      book_copy: {
+        cols: ['book_copy_id', 'title', 'condition', 'acquisition_date', 'replacement_cost', 'owning_branch_name'],
+        rows: [
+          [101, 'The Bell Jar', 'worn', '2019-04-12', 18.5, 'Lakeside'],
+          [102, 'A Brief History of Time', 'good', '2021-11-03', 27, 'Hilltop'],
+          [103, 'Beloved', 'good', '2017-06-22', 22, 'Lakeside'],
+          [104, 'Sapiens', 'new', '2023-02-14', 32, 'Hilltop'],
+          [105, 'The Road', 'damaged', '2018-09-30', 19.99, 'Lakeside'],
+          [106, 'Hyperion', 'worn', '2020-01-08', 24, 'Hilltop'],
+          [107, 'Cosmos', 'good', '2016-05-19', 25, 'Hilltop'],
+          [108, 'Educated', 'new', '2024-08-01', 29.5, 'Lakeside'],
+        ],
+      },
+      loan: {
+        cols: ['loan_id', 'book_copy_id', 'member_id', 'loan_date', 'fine_amount'],
+        rows: [
+          [1, 103, 7, '2026-01-09', 0], [2, 101, 7, '2026-01-22', 4.5], [3, 104, 12, '2026-02-03', 0],
+          [4, 102, 7, '2026-02-15', 1.25], [5, 105, 4, '2026-03-01', 12], [6, 103, 12, '2026-03-19', 0],
+          [7, 107, 4, '2026-04-02', 3.75], [8, 101, 19, '2026-04-28', 0], [9, 108, 12, '2026-05-11', 0],
+          [10, 104, 4, '2026-05-30', 8], [11, 102, 19, '2026-09-28', null],
+        ],
+      },
+    },
+    presets: [
+      ['DQL: worked examples: aggregation', 'One summary row for the whole table', `SELECT COUNT(*)           AS num_loans,\n       COUNT(fine_amount) AS num_assessed,\n       SUM(fine_amount)   AS total_fines,\n       AVG(fine_amount)   AS avg_fine\nFROM   loan;`],
+      ['DQL: worked examples: aggregation', 'WHERE runs first', `SELECT COUNT(*) AS num_fined, AVG(fine_amount) AS avg_fine\nFROM   loan\nWHERE  fine_amount > 0;`],
+      ['DQL: worked examples: aggregation', 'Recap: GROUP BY and ORDER BY', `SELECT   member_id, COUNT(*) AS num_loans\nFROM     loan\nGROUP BY member_id\nORDER BY num_loans DESC, member_id ASC;`],
+      ['DQL: worked examples: aggregation', 'The limit of aggregation alone', `SELECT title\nFROM   book_copy\nWHERE  replacement_cost > AVG(replacement_cost);   -- ERROR`],
+      ['DQL: worked examples: subqueries', 'Scalar subquery', `SELECT   title, replacement_cost\nFROM     book_copy\nWHERE    replacement_cost > (SELECT AVG(replacement_cost)\n                             FROM   book_copy)\nORDER BY replacement_cost DESC;`],
+      ['DQL: worked examples: subqueries', 'IN and NOT IN', `SELECT title\nFROM   book_copy\nWHERE  book_copy_id IN (SELECT book_copy_id\n                        FROM   loan\n                        WHERE  fine_amount > 0);`],
+      ['DQL: worked examples: subqueries', 'EXISTS (correlated)', `SELECT title\nFROM   book_copy bc\nWHERE  EXISTS (SELECT 1\n               FROM   loan l\n               WHERE  l.book_copy_id = bc.book_copy_id);`],
+      ['DQL: worked examples: subqueries', 'Subquery in FROM', `SELECT AVG(num_loans) AS avg_loans_per_member\nFROM   (SELECT   member_id, COUNT(*) AS num_loans\n        FROM     loan\n        GROUP BY member_id) AS per_member;`],
+      ['DQL: Tutorial 5 tasks (write your own)', 'Task 1: Member summary', `-- Task 1 (required): Member summary.\n-- For each member, return their member_id, their total number of\n-- loans, the number of their loans whose fine has been assessed\n-- (is not null), and their total fines. Give every aggregate column\n-- a readable name. Order the result from the largest total fine to\n-- the smallest, breaking ties by member_id.\n-- Predict first: why does member 19's loan count differ from\n-- their assessed count, and what is their total fine?\n\n`],
+      ['DQL: Tutorial 5 tasks (write your own)', 'Task 2: Most expensive copy at each branch', `-- Task 2 (required): Most expensive copy at each branch.\n-- For each branch, return the most expensive copy there: its title,\n-- its owning_branch_name, and its replacement_cost.\n-- Hint: compare each copy against the maximum cost of copies at\n-- the same branch as that copy.\n-- Why can you not simply select title next to MAX(replacement_cost)\n-- and group by branch? (Try it!)\n\n`],
+      ['DQL: Tutorial 5 tasks (write your own)', 'Task 3: Never borrowed', `-- Task 3 (required): Never borrowed.\n-- Return the title of every copy that has never been loaned.\n-- Write it once using NOT IN, then again using NOT EXISTS with a\n-- correlated subquery. Run one version at a time: put -- in front\n-- of the other.\n\n`],
+      ['DQL: Tutorial 5 tasks (write your own)', 'Task 4: Above-average borrowers (extra)', `-- Task 4 (extra practice): Above-average borrowers.\n-- Return the member_id and total fines of every member whose total\n-- fines are strictly greater than the average member's total fines.\n-- Hint: work out the average on paper first. What are you averaging\n-- over: loans, or members? How is that different from\n-- AVG(fine_amount) over the loan table?\n\n`],
+      ['DQL: Tutorial 5 tasks (write your own)', 'Task 5: The most popular copies (extra)', `-- Task 5 (extra practice): The most popular copies.\n-- Return the title of the copy that has been loaned the most times,\n-- sorted alphabetically. If several copies tie for the most loans,\n-- your query must return all of them, and keep doing so if the data\n-- changes. Why is ORDER BY … LIMIT 1 not good enough?\n\n`],
+      ['DQL: common pitfalls', 'Column neither grouped nor aggregated', `SELECT   member_id, loan_date, COUNT(*)\nFROM     loan\nGROUP BY member_id;`],
+      ['DQL: common pitfalls', 'COUNT(*) vs COUNT(col)', `SELECT COUNT(*), COUNT(fine_amount)\nFROM   loan;`],
+      ['DQL: common pitfalls', 'Scalar subquery with more than one row', `SELECT title\nFROM   book_copy\nWHERE  book_copy_id = (SELECT book_copy_id\n                       FROM   loan\n                       WHERE  member_id = 7);`],
+      ['DQL: common pitfalls', 'NOT IN with a null in the list', `-- loans whose fine differs from every fine member 19 got\nSELECT loan_id, fine_amount\nFROM   loan\nWHERE  fine_amount NOT IN (SELECT fine_amount\n                           FROM   loan\n                           WHERE  member_id = 19);`],
+      ['DQL: common pitfalls', 'Subquery in FROM without a name', `SELECT AVG(num_loans)\nFROM   (SELECT   member_id, COUNT(*) AS num_loans\n        FROM     loan\n        GROUP BY member_id);`],
+      ['DDL', 'Tables used today (sketch)', `-- A sketch of the two tables used today\n-- (not the official Practical5-SQL.ddl).\nCREATE TABLE book_copy (\n  book_copy_id       INT PRIMARY KEY,\n  title              VARCHAR(60) NOT NULL,\n  condition          VARCHAR(10),\n  acquisition_date   DATE,\n  replacement_cost   NUMERIC(6,2),\n  owning_branch_name VARCHAR(30) NOT NULL\n);\n\nCREATE TABLE loan (\n  loan_id      INT PRIMARY KEY,\n  book_copy_id INT NOT NULL\n    CONSTRAINT borrows REFERENCES book_copy,\n  member_id    INT NOT NULL,\n  loan_date    DATE NOT NULL,\n  fine_amount  NUMERIC(5,2)\n    CHECK (fine_amount >= 0)\n);`],
+    ],
+  },
+  {
+    id: 'library', emoji: '📚',
+    name: 'Community Library (Tutorial 4)',
+    colFormats: { replacement_cost: '2dp' },
+    fks: [],
+    tables: {
+      book_copy: {
+        cols: ['book_copy_id', 'title', 'condition', 'acquisition_date', 'replacement_cost', 'owning_branch_name'],
+        rows: [
+          [101, 'The Bell Jar', 'worn', '2019-04-12', 18.5, 'Lakeside'],
+          [102, 'A Brief History of Time', 'good', '2021-11-03', 27, 'Hilltop'],
+          [103, 'Beloved', 'good', '2017-06-22', 22, 'Lakeside'],
+          [104, 'Sapiens', 'new', '2023-02-14', 32, 'Hilltop'],
+          [105, 'The Road', 'damaged', '2018-09-30', 19.99, 'Lakeside'],
+          [106, 'Hyperion', 'worn', '2020-01-08', 24, 'Hilltop'],
+          [107, 'Cosmos', 'good', '2016-05-19', 25, 'Hilltop'],
+          [108, 'Educated', 'new', '2024-08-01', 29.5, 'Lakeside'],
+        ],
+      },
+    },
+    presets: [
+      ['DQL: worked examples', 'The whole table', `SELECT * FROM book_copy;`],
+      ['DQL: worked examples', 'Picking columns', `SELECT title, condition\nFROM book_copy;`],
+      ['DQL: worked examples', 'Picking rows', `SELECT title\nFROM book_copy\nWHERE owning_branch_name = 'Lakeside';`],
+      ['DQL: worked examples', 'AND', `SELECT title\nFROM book_copy\nWHERE acquisition_date >= '2020-01-01'\n  AND condition = 'good';`],
+      ['DQL: worked examples', 'OR', `SELECT title, condition\nFROM book_copy\nWHERE condition = 'worn'\n   OR condition = 'damaged';`],
+      ['DQL: worked examples', 'NOT', `SELECT title\nFROM book_copy\nWHERE NOT (owning_branch_name = 'Lakeside');`],
+      ['DQL: worked examples', 'LIKE', `SELECT title\nFROM book_copy\nWHERE title LIKE 'The %';  -- starts with "The "`],
+      ['DQL: Tutorial 4 tasks (write your own)', 'Task 1', `-- Task 1: Return the title and replacement_cost of every copy\n-- that costs more than $25 to replace.\n-- Predict the result first, then write your query below and press Run.\n\n`],
+      ['DQL: Tutorial 4 tasks (write your own)', 'Task 2', `-- Task 2: Return the title of every copy owned by the Lakeside\n-- branch that is in good or new condition.\n-- Write it once using OR, then again using IN.\n-- Run one version at a time: put -- in front of the other.\n\n`],
+      ['DQL: Tutorial 4 tasks (write your own)', 'Task 3', `-- Task 3: Return the title of every copy acquired between 2018\n-- and 2022, inclusive. Write it once with two comparisons joined\n-- by AND, then again with BETWEEN.\n-- Run one version at a time: put -- in front of the other.\n\n`],
+      ['DQL: Tutorial 4 tasks (write your own)', 'Task 4', `-- Task 4 (trickier): Return the title of every copy that is either\n-- in new condition, or owned by Hilltop and acquired in 2021 or later.\n-- Then write a second version with the parentheses placed around\n-- the OR instead. Do both versions return the same rows here?\n-- Are they the same query?\n\n`],
+      ['DQL: common pitfalls', 'Double quotes for text', `SELECT title\nFROM book_copy\nWHERE condition = "new";`],
+      ['DQL: common pitfalls', '= NULL instead of IS NULL', `SELECT title\nFROM book_copy\nWHERE owning_branch_name = NULL;`],
+      ['DDL', 'Community Library schema (sketch)', `-- A sketch of the Community Library tables\n-- (not the official Tutorial3-SQL.ddl).\nCREATE TABLE Branch (\n  name    VARCHAR(30) PRIMARY KEY,\n  address VARCHAR(60) NOT NULL\n);\n\nCREATE TABLE book_copy (\n  book_copy_id INT PRIMARY KEY,\n  title        VARCHAR(60) NOT NULL,\n  condition    VARCHAR(10)\n    CHECK (condition IN\n      ('new', 'good', 'worn', 'damaged')),\n  replacement_cost NUMERIC(6,2)\n    CHECK (replacement_cost > 0),\n  owning_branch_name VARCHAR(30)\n    NOT NULL\n    CONSTRAINT owned_by REFERENCES Branch\n);\n\nCREATE TABLE Member (\n  member_id INT PRIMARY KEY,\n  name      VARCHAR(40) NOT NULL,\n  email     VARCHAR(60) UNIQUE\n);\n\nCREATE TABLE Fine (\n  member_id INT\n    CONSTRAINT owes REFERENCES Member\n    ON DELETE CASCADE,\n  fine_no   INT,\n  amount    NUMERIC(5,2) NOT NULL\n              CHECK (amount > 0),\n  PRIMARY KEY (member_id, fine_no)\n);`],
     ],
   },
   {
     id: 'lec5', emoji: '🎧',
-    name: 'Songs & Students (Lecture 5)',
+    name: 'Spotify (Lecture 6 practical)',
     fks: [{ child: 'Plays', col: 'song_id', parent: 'Songs', pcol: 'song_id' }],
     tables: {
       Songs: {
@@ -764,6 +870,24 @@ const DATASETS = [
       },
     },
     presets: [
+      ['Practical Side B: DQL (write your own)', 'Box 1 (a): INNER JOIN', `-- Box 1 (a): Write a query using INNER JOIN to return each\n-- play_id alongside the title of the song that was played.\n-- Predict: how many rows, and why? Then Run to check.\n\n`],
+      ['Practical Side B: DQL (write your own)', 'Box 1 (b): LEFT JOIN', `-- Box 1 (b): Replace INNER JOIN with LEFT JOIN, keeping Songs\n-- on the left. Which song(s) now appear with a NULL play_id,\n-- and why?\n\n`],
+      ['Practical Side B: DQL (write your own)', 'Box 1 (c): FROM Songs, Plays', `-- Box 1 (c): A classmate writes FROM Songs, Plays with no WHERE.\n-- Predict how many rows it produces and which join type it\n-- corresponds to, then write it and Run.\n\n`],
+      ['Practical Side B: DQL (write your own)', 'Box 3 (b): UNION and EXCEPT', `-- Box 3 (b): Write the SQL equivalents of R ∪ S and R − S\n-- (use UNION and EXCEPT), where\n--   R = π[name](σ[major = 'CS'](Students))\n--   S = π[name](σ[gpa > 3.5](Students))\n-- Run one statement at a time.\n\n`],
+      ['Practical Side B: DQL (write your own)', 'Box 4 (c): self-join in SQL', `-- Box 4 (c): Translate your relational algebra answer to Box 4 (b)\n-- into SQL: pairs of students (by name) in the same major,\n-- each pair once.\n\n`],
+      ['Practical Side B: DQL (write your own)', 'Box 5 (b): LEFT JOIN … IS NULL', `-- Box 5 (b): Titles of songs never played, written with\n-- LEFT JOIN … WHERE … IS NULL.\n\n`],
+      ['Practical Side B: DQL (write your own)', 'Box 5 (c): NOT IN', `-- Box 5 (c): Rewrite Box 5 (b) another way.\n-- NOT IN (SELECT …) runs here; NOT EXISTS needs a correlated\n-- subquery, which this tool does not trace, so sketch that one on paper.\n\n`],
+      ['Practical Side B: RA (write your own)', 'Box 2 (a): σ', `-- Box 2 (a): All attributes of songs whose artist is 'Dua Lipa'.\n-- Use the RA buttons under the editor for σ and π.\n\n`],
+      ['Practical Side B: RA (write your own)', 'Box 2 (b): π and σ, two ways', `-- Box 2 (b): Just the title of every song by 'Dua Lipa'.\n-- Write it with π outside σ, then with σ outside π.\n-- Does the second always work? Run each one to find out.\n\n`],
+      ['Practical Side B: RA (write your own)', 'Box 3 (a): R, S and set operations', `-- Box 3 (a): R and S from the handout (Lecture 5 Students data).\n-- Run to see R, then change the last line to R ∪ S, R ∩ S, R − S.\nR := π[name](σ[major = 'CS'](Students))\nS := π[name](σ[gpa > 3.5](Students))\nR`],
+      ['Practical Side B: RA (write your own)', 'Box 3 (c): the classmate\'s union', `-- Box 3 (c): A classmate tries this. Predict first: is it valid?\n-- Run it, then decide whether the result means anything.\nπ[name](Students) ∪ π[title](Songs)`],
+      ['Practical Side B: RA (write your own)', 'Box 4 (b): ρ and a self-join', `-- Box 4 (b): Pairs of students (by name) in the same major,\n-- each pair once (use < on sid). Rename Students to S1 and S2.\n\n`],
+      ['Practical Side B: RA (write your own)', 'Box 5 (a): never-played songs', `-- Box 5 (a): Titles of songs that are in Songs but never appear\n-- in Plays. Use set difference (−).\n\n`],
+      ['Practical Side B: RA (write your own)', 'Side A: outer joins ⟕ ⟖ ⟗', `-- Side A: outer joins in relational algebra.\n--   ⟕ left    ⟖ right    ⟗ full   (buttons under the editor)\n-- Write one with Songs and Plays and compare it with your\n-- Box 1 (b) SQL.\n\n`],
+      ['DQL: set operations (compare with RA)', 'UNION', `-- users who played song 1, or song 2 (same as the RA ∪ example)\nSELECT user_id FROM Plays WHERE song_id = 1\nUNION\nSELECT user_id FROM Plays WHERE song_id = 2;`],
+      ['DQL: set operations (compare with RA)', 'INTERSECT', `SELECT user_id FROM Plays WHERE song_id = 1\nINTERSECT\nSELECT user_id FROM Plays WHERE song_id = 2;`],
+      ['DQL: set operations (compare with RA)', 'EXCEPT', `SELECT user_id FROM Plays WHERE song_id = 1\nEXCEPT\nSELECT user_id FROM Plays WHERE song_id = 2;`],
+      ['DQL: set operations (compare with RA)', 'π vs SELECT: duplicates', `-- π removes duplicates; SELECT keeps them. Compare with\n-- the RA example π[user_id](Plays).\nSELECT user_id\nFROM Plays;`],
       ['RA: first steps', 'A relation on its own', `Students`],
       ['RA: first steps', 'σ on a text value', `σ[major = 'Math'](Students)`],
       ['RA: first steps', 'σ with NOT (¬)', `σ[¬(major = 'CS')](Students)`],
@@ -788,48 +912,6 @@ const DATASETS = [
       ['RA: set operations', 'Intersection ∩', `-- users who played song 1 and song 2\nπ[user_id](σ[song_id = 1](Plays))\n  ∩\nπ[user_id](σ[song_id = 2](Plays))`],
       ['RA: set operations', 'Difference −', `-- users who played song 1 but not song 2\nπ[user_id](σ[song_id = 1](Plays))\n  −\nπ[user_id](σ[song_id = 2](Plays))`],
       ['RA: set operations', 'Oops: not union-compatible', `-- Try it: this one has a mistake.\nπ[name, gpa](Students) ∪ π[title](Songs)`],
-      ['Handout Side B (write your own)', 'Box 1 (a)–(c): join types', `-- Box 1 (a): INNER JOIN: each play_id with the title of\n-- the song played. How many rows, and why?\n-- (b): change to LEFT JOIN (Songs on the left).\n-- (c): FROM Songs, Plays with no WHERE.\n-- Write one query at a time below, then Run.\n\n`],
-      ['Handout Side B (write your own)', 'Box 2 (a)–(b): σ and π', `-- Box 2 (a): all attributes of songs by 'Dua Lipa'.\n-- (b): just the title. Try π outside σ, then σ outside π.\n\n`],
-      ['Handout Side B (write your own)', 'Box 3: set operations', `-- Box 3: R and S from the handout. Run to see R,\n-- then change the last line to R ∪ S, R ∩ S, R − S.\nR := π[name](σ[major = 'CS'](Students))\nS := π[name](σ[gpa > 3.5](Students))\nR`],
-      ['Handout Side B (write your own)', 'Box 4 (b)–(c): rename and self-join', `-- Box 4 (b): pairs of students (by name) in the same major,\n-- each pair once (use < on sid). Rename Students to S1, S2.\n-- (c): then write it in SQL.\n\n`],
-      ['Handout Side B (write your own)', 'Box 5 (a)–(b): never-played songs', `-- Box 5 (a): titles of songs never played, using −.\n-- (b): the SQL version with LEFT JOIN … WHERE … IS NULL.\n\n`],
-    ],
-  },
-  {
-    id: 'library', emoji: '📚',
-    name: 'Community Library (Tutorial 4)',
-    colFormats: { replacement_cost: '2dp' },
-    fks: [],
-    tables: {
-      book_copy: {
-        cols: ['book_copy_id', 'title', 'condition', 'acquisition_date', 'replacement_cost', 'owning_branch_name'],
-        rows: [
-          [101, 'The Bell Jar', 'worn', '2019-04-12', 18.5, 'Lakeside'],
-          [102, 'A Brief History of Time', 'good', '2021-11-03', 27, 'Hilltop'],
-          [103, 'Beloved', 'good', '2017-06-22', 22, 'Lakeside'],
-          [104, 'Sapiens', 'new', '2023-02-14', 32, 'Hilltop'],
-          [105, 'The Road', 'damaged', '2018-09-30', 19.99, 'Lakeside'],
-          [106, 'Hyperion', 'worn', '2020-01-08', 24, 'Hilltop'],
-          [107, 'Cosmos', 'good', '2016-05-19', 25, 'Hilltop'],
-          [108, 'Educated', 'new', '2024-08-01', 29.5, 'Lakeside'],
-        ],
-      },
-    },
-    presets: [
-      ['Worked examples', 'The whole table', `SELECT * FROM book_copy;`],
-      ['Worked examples', 'Picking columns', `SELECT title, condition\nFROM book_copy;`],
-      ['Worked examples', 'Picking rows', `SELECT title\nFROM book_copy\nWHERE owning_branch_name = 'Lakeside';`],
-      ['Worked examples', 'AND', `SELECT title\nFROM book_copy\nWHERE acquisition_date >= '2020-01-01'\n  AND condition = 'good';`],
-      ['Worked examples', 'OR', `SELECT title, condition\nFROM book_copy\nWHERE condition = 'worn'\n   OR condition = 'damaged';`],
-      ['Worked examples', 'NOT', `SELECT title\nFROM book_copy\nWHERE NOT (owning_branch_name = 'Lakeside');`],
-      ['Worked examples', 'LIKE', `SELECT title\nFROM book_copy\nWHERE title LIKE 'The %';  -- starts with "The "`],
-      ['Tutorial tasks (write your own)', 'Task 1', `-- Task 1: Return the title and replacement_cost of every copy\n-- that costs more than $25 to replace.\n-- Predict the result first, then write your query below and press Run.\n\n`],
-      ['Tutorial tasks (write your own)', 'Task 2', `-- Task 2: Return the title of every copy owned by the Lakeside\n-- branch that is in good or new condition.\n-- Write it once using OR, then again using IN.\n-- Run one version at a time: put -- in front of the other.\n\n`],
-      ['Tutorial tasks (write your own)', 'Task 3', `-- Task 3: Return the title of every copy acquired between 2018\n-- and 2022, inclusive. Write it once with two comparisons joined\n-- by AND, then again with BETWEEN.\n-- Run one version at a time: put -- in front of the other.\n\n`],
-      ['Tutorial tasks (write your own)', 'Task 4', `-- Task 4 (trickier): Return the title of every copy that is either\n-- in new condition, or owned by Hilltop and acquired in 2021 or later.\n-- Then write a second version with the parentheses placed around\n-- the OR instead. Do both versions return the same rows here?\n-- Are they the same query?\n\n`],
-      ['Common pitfalls', 'Double quotes for text', `SELECT title\nFROM book_copy\nWHERE condition = "new";`],
-      ['Common pitfalls', '= NULL instead of IS NULL', `SELECT title\nFROM book_copy\nWHERE owning_branch_name = NULL;`],
-      ['DDL', 'Community Library schema (sketch)', `-- A sketch of the Community Library tables\n-- (not the official Tutorial3-SQL.ddl).\nCREATE TABLE Branch (\n  name    VARCHAR(30) PRIMARY KEY,\n  address VARCHAR(60) NOT NULL\n);\n\nCREATE TABLE book_copy (\n  book_copy_id INT PRIMARY KEY,\n  title        VARCHAR(60) NOT NULL,\n  condition    VARCHAR(10)\n    CHECK (condition IN\n      ('new', 'good', 'worn', 'damaged')),\n  replacement_cost NUMERIC(6,2)\n    CHECK (replacement_cost > 0),\n  owning_branch_name VARCHAR(30)\n    NOT NULL\n    CONSTRAINT owned_by REFERENCES Branch\n);\n\nCREATE TABLE Member (\n  member_id INT PRIMARY KEY,\n  name      VARCHAR(40) NOT NULL,\n  email     VARCHAR(60) UNIQUE\n);\n\nCREATE TABLE Fine (\n  member_id INT\n    CONSTRAINT owes REFERENCES Member\n    ON DELETE CASCADE,\n  fine_no   INT,\n  amount    NUMERIC(5,2) NOT NULL\n              CHECK (amount > 0),\n  PRIMARY KEY (member_id, fine_no)\n);`],
     ],
   },
   {
@@ -863,22 +945,22 @@ const DATASETS = [
       },
     ],
     presets: [
-      ['Warm-up', 'Cheap eats', `SELECT item, price\nFROM Menu\nWHERE price < 4\nORDER BY price;`],
-      ['Warm-up', 'Menu by category', `SELECT category, COUNT(*), AVG(price)\nFROM Menu\nGROUP BY category;`],
-      ['Warm-up', 'Who has ordered?', `SELECT DISTINCT customer\nFROM Orders;`],
-      ['Warm-up', 'Priciest item', `SELECT item, price\nFROM Menu\nWHERE price =\n  (SELECT MAX(price)\n   FROM Menu);`],
-      ['Joins', 'Receipt lines', `SELECT o.customer, o.item,\n       o.qty * m.price AS total\nFROM Orders o\n  JOIN Menu m\n    ON o.item = m.item;`],
-      ['Joins', 'Never ordered', `SELECT m.item\nFROM Menu m\n  LEFT JOIN Orders o\n    ON m.item = o.item\nWHERE o.oid IS NULL;`],
-      ['Joins', 'Big spenders', `SELECT o.customer,\n       SUM(o.qty * m.price) AS spent\nFROM Orders o\n  JOIN Menu m\n    ON o.item = m.item\nGROUP BY o.customer\nORDER BY spent DESC;`],
-      ['Joins', 'RIGHT JOIN: every customer', `SELECT c.customer, o.item\nFROM Orders o\n  RIGHT JOIN Customers c\n    ON o.customer = c.customer;`],
-      ['Joins', 'Three tables', `SELECT c.city, m.category\nFROM Customers c\n  JOIN Orders o\n    ON c.customer = o.customer\n  JOIN Menu m\n    ON o.item = m.item;`],
+      ['DQL: warm-up', 'Cheap eats', `SELECT item, price\nFROM Menu\nWHERE price < 4\nORDER BY price;`],
+      ['DQL: warm-up', 'Menu by category', `SELECT category, COUNT(*), AVG(price)\nFROM Menu\nGROUP BY category;`],
+      ['DQL: warm-up', 'Who has ordered?', `SELECT DISTINCT customer\nFROM Orders;`],
+      ['DQL: warm-up', 'Priciest item', `SELECT item, price\nFROM Menu\nWHERE price =\n  (SELECT MAX(price)\n   FROM Menu);`],
+      ['DQL: joins', 'Receipt lines', `SELECT o.customer, o.item,\n       o.qty * m.price AS total\nFROM Orders o\n  JOIN Menu m\n    ON o.item = m.item;`],
+      ['DQL: joins', 'Never ordered', `SELECT m.item\nFROM Menu m\n  LEFT JOIN Orders o\n    ON m.item = o.item\nWHERE o.oid IS NULL;`],
+      ['DQL: joins', 'Big spenders', `SELECT o.customer,\n       SUM(o.qty * m.price) AS spent\nFROM Orders o\n  JOIN Menu m\n    ON o.item = m.item\nGROUP BY o.customer\nORDER BY spent DESC;`],
+      ['DQL: joins', 'RIGHT JOIN: every customer', `SELECT c.customer, o.item\nFROM Orders o\n  RIGHT JOIN Customers c\n    ON o.customer = c.customer;`],
+      ['DQL: joins', 'Three tables', `SELECT c.city, m.category\nFROM Customers c\n  JOIN Orders o\n    ON c.customer = o.customer\n  JOIN Menu m\n    ON o.item = m.item;`],
       ['DML', 'Take empanadas off the menu: CASCADE', `DELETE FROM Menu\nWHERE item = 'Empanada';`, { rules: { 'Orders.item': { del: 'CASCADE' } } }],
       ['DML', 'Take empanadas off the menu: RESTRICT', `DELETE FROM Menu\nWHERE item = 'Empanada';`, { rules: { 'Orders.item': { del: 'RESTRICT' } } }],
       ['DML', 'Rename an item: ON UPDATE CASCADE', `UPDATE Menu\nSET item = 'Iced matcha'\nWHERE item = 'Matcha latte';`, { rules: { 'Orders.item': { upd: 'CASCADE' } } }],
       ['DDL', 'Café schema', `CREATE TABLE Menu (\n  item     VARCHAR(30) PRIMARY KEY,\n  category VARCHAR(10) NOT NULL,\n  price    NUMERIC(4,2)\n             CHECK (price > 0)\n);\n\nCREATE TABLE Customers (\n  customer VARCHAR(20) PRIMARY KEY,\n  city     VARCHAR(20)\n);\n\nCREATE TABLE Orders (\n  oid      INT PRIMARY KEY,\n  customer VARCHAR(20) NOT NULL\n    CONSTRAINT placed_by\n    REFERENCES Customers,\n  item     VARCHAR(30) NOT NULL\n    CONSTRAINT ordered\n    REFERENCES Menu,\n  qty      INT DEFAULT 1\n             CHECK (qty >= 1)\n);`],
-      ['Relational algebra', 'π: who has ordered?', `π[customer](Orders)`],
-      ['Relational algebra', 'σ then π: drinks', `π[item, price](σ[category = 'drink'](Menu))`],
-      ['Relational algebra', '∩: items that were ordered', `π[item](Menu) ∩ π[item](Orders)`],
+      ['RA', 'π: who has ordered?', `π[customer](Orders)`],
+      ['RA', 'σ then π: drinks', `π[item, price](σ[category = 'drink'](Menu))`],
+      ['RA', '∩: items that were ordered', `π[item](Menu) ∩ π[item](Orders)`],
     ],
   },
   {
@@ -909,14 +991,14 @@ const DATASETS = [
       },
     ],
     presets: [
-      ['Warm-up', 'The cats', `SELECT name, age\nFROM Pets\nWHERE species = 'cat';`],
-      ['Warm-up', 'Youngest first', `SELECT name, species, age\nFROM Pets\nORDER BY age;`],
-      ['Warm-up', 'Species stats', `SELECT species, COUNT(*), AVG(age)\nFROM Pets\nGROUP BY species;`],
-      ['Warm-up', 'Oldest pet', `SELECT name, age\nFROM Pets\nWHERE age =\n  (SELECT MAX(age)\n   FROM Pets);`],
-      ['Joins', 'Who adopted whom (3 tables)', `SELECT a.name, p.name\nFROM Adopters a\n  JOIN Adoptions ad\n    ON a.aid = ad.aid\n  JOIN Pets p\n    ON ad.pid = p.pid;`],
-      ['Joins', 'Still waiting for a home', `SELECT p.name, p.species\nFROM Pets p\n  LEFT JOIN Adoptions ad\n    ON p.pid = ad.pid\nWHERE ad.pid IS NULL;`],
-      ['Joins', 'Pets per adopter', `SELECT a.name, COUNT(ad.pid)\nFROM Adopters a\n  LEFT JOIN Adoptions ad\n    ON a.aid = ad.aid\nGROUP BY a.name;`],
-      ['Joins', 'Oops: which name?', `-- Try it: this one has a mistake.\nSELECT name\nFROM Pets p\n  JOIN Adoptions ad\n    ON p.pid = ad.pid\n  JOIN Adopters a\n    ON ad.aid = a.aid;`],
+      ['DQL: warm-up', 'The cats', `SELECT name, age\nFROM Pets\nWHERE species = 'cat';`],
+      ['DQL: warm-up', 'Youngest first', `SELECT name, species, age\nFROM Pets\nORDER BY age;`],
+      ['DQL: warm-up', 'Species stats', `SELECT species, COUNT(*), AVG(age)\nFROM Pets\nGROUP BY species;`],
+      ['DQL: warm-up', 'Oldest pet', `SELECT name, age\nFROM Pets\nWHERE age =\n  (SELECT MAX(age)\n   FROM Pets);`],
+      ['DQL: joins', 'Who adopted whom (3 tables)', `SELECT a.name, p.name\nFROM Adopters a\n  JOIN Adoptions ad\n    ON a.aid = ad.aid\n  JOIN Pets p\n    ON ad.pid = p.pid;`],
+      ['DQL: joins', 'Still waiting for a home', `SELECT p.name, p.species\nFROM Pets p\n  LEFT JOIN Adoptions ad\n    ON p.pid = ad.pid\nWHERE ad.pid IS NULL;`],
+      ['DQL: joins', 'Pets per adopter', `SELECT a.name, COUNT(ad.pid)\nFROM Adopters a\n  LEFT JOIN Adoptions ad\n    ON a.aid = ad.aid\nGROUP BY a.name;`],
+      ['DQL: joins', 'Oops: which name?', `-- Try it: this one has a mistake.\nSELECT name\nFROM Pets p\n  JOIN Adoptions ad\n    ON p.pid = ad.pid\n  JOIN Adopters a\n    ON ad.aid = a.aid;`],
       ['DML', 'An adopter moves away: SET NULL', `DELETE FROM Adopters\nWHERE name = 'Priya';`, { rules: { 'Adoptions.aid': { del: 'SET NULL' } } }],
     ],
   },
@@ -948,14 +1030,14 @@ const DATASETS = [
       },
     ],
     presets: [
-      ['Warm-up', 'Rocky planets', `SELECT planet, au\nFROM Planets\nWHERE type = 'rocky'\nORDER BY au DESC;`],
-      ['Warm-up', 'Planet types', `SELECT type, COUNT(*), MAX(au)\nFROM Planets\nGROUP BY type;`],
-      ['Warm-up', 'Destinations', `SELECT DISTINCT planet\nFROM Missions;`],
-      ['Warm-up', 'Latest launches', `SELECT mission, agency\nFROM Missions\nWHERE year =\n  (SELECT MAX(year)\n   FROM Missions);`],
-      ['Joins', 'Where did they go?', `SELECT m.mission, m.agency, p.type\nFROM Missions m\n  JOIN Planets p\n    ON m.planet = p.planet;`],
-      ['Joins', 'Same join, comma style', `SELECT m.mission, p.au\nFROM Missions m, Planets p\nWHERE m.planet = p.planet\n  AND p.au > 1;`],
-      ['Joins', 'No mission in this table', `SELECT p.planet\nFROM Planets p\n  LEFT JOIN Missions m\n    ON p.planet = m.planet\nWHERE m.mission IS NULL;`],
-      ['Joins', 'Missions per planet', `SELECT p.planet,\n       COUNT(m.mission) AS missions\nFROM Planets p\n  LEFT JOIN Missions m\n    ON p.planet = m.planet\nGROUP BY p.planet\nORDER BY missions DESC;`],
+      ['DQL: warm-up', 'Rocky planets', `SELECT planet, au\nFROM Planets\nWHERE type = 'rocky'\nORDER BY au DESC;`],
+      ['DQL: warm-up', 'Planet types', `SELECT type, COUNT(*), MAX(au)\nFROM Planets\nGROUP BY type;`],
+      ['DQL: warm-up', 'Destinations', `SELECT DISTINCT planet\nFROM Missions;`],
+      ['DQL: warm-up', 'Latest launches', `SELECT mission, agency\nFROM Missions\nWHERE year =\n  (SELECT MAX(year)\n   FROM Missions);`],
+      ['DQL: joins', 'Where did they go?', `SELECT m.mission, m.agency, p.type\nFROM Missions m\n  JOIN Planets p\n    ON m.planet = p.planet;`],
+      ['DQL: joins', 'Same join, comma style', `SELECT m.mission, p.au\nFROM Missions m, Planets p\nWHERE m.planet = p.planet\n  AND p.au > 1;`],
+      ['DQL: joins', 'No mission in this table', `SELECT p.planet\nFROM Planets p\n  LEFT JOIN Missions m\n    ON p.planet = m.planet\nWHERE m.mission IS NULL;`],
+      ['DQL: joins', 'Missions per planet', `SELECT p.planet,\n       COUNT(m.mission) AS missions\nFROM Planets p\n  LEFT JOIN Missions m\n    ON p.planet = m.planet\nGROUP BY p.planet\nORDER BY missions DESC;`],
     ],
   },
   {
@@ -983,14 +1065,14 @@ const DATASETS = [
       },
     ],
     presets: [
-      ['Warm-up', 'Quick games', `SELECT game, minutes\nFROM Games\nWHERE minutes <= 25\nORDER BY minutes;`],
-      ['Warm-up', 'Games by origin', `SELECT origin, COUNT(*)\nFROM Games\nGROUP BY origin;`],
-      ['Warm-up', 'How many games get played?', `SELECT COUNT(DISTINCT game)\nFROM Plays;`],
-      ['Joins', 'Who plays what', `SELECT pl.name, p.game, p.wins\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid;`],
-      ['Joins', 'Leaderboard', `SELECT pl.name, SUM(p.wins) AS wins\nFROM Players pl\n  LEFT JOIN Plays p\n    ON pl.pid = p.pid\nGROUP BY pl.name\nORDER BY wins DESC;`],
-      ['Joins', 'RIGHT JOIN: unplayed games', `SELECT p.pid, g.game\nFROM Plays p\n  RIGHT JOIN Games g\n    ON p.game = g.game;`],
-      ['Joins', 'Long games (3 tables)', `SELECT pl.name, g.game, g.origin\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid\n  JOIN Games g\n    ON p.game = g.game\nWHERE g.minutes >= 45;`],
-      ['Joins', 'Record holder', `SELECT pl.name, p.game, p.wins\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid\nWHERE p.wins =\n  (SELECT MAX(wins)\n   FROM Plays);`],
+      ['DQL: warm-up', 'Quick games', `SELECT game, minutes\nFROM Games\nWHERE minutes <= 25\nORDER BY minutes;`],
+      ['DQL: warm-up', 'Games by origin', `SELECT origin, COUNT(*)\nFROM Games\nGROUP BY origin;`],
+      ['DQL: warm-up', 'How many games get played?', `SELECT COUNT(DISTINCT game)\nFROM Plays;`],
+      ['DQL: joins', 'Who plays what', `SELECT pl.name, p.game, p.wins\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid;`],
+      ['DQL: joins', 'Leaderboard', `SELECT pl.name, SUM(p.wins) AS wins\nFROM Players pl\n  LEFT JOIN Plays p\n    ON pl.pid = p.pid\nGROUP BY pl.name\nORDER BY wins DESC;`],
+      ['DQL: joins', 'RIGHT JOIN: unplayed games', `SELECT p.pid, g.game\nFROM Plays p\n  RIGHT JOIN Games g\n    ON p.game = g.game;`],
+      ['DQL: joins', 'Long games (3 tables)', `SELECT pl.name, g.game, g.origin\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid\n  JOIN Games g\n    ON p.game = g.game\nWHERE g.minutes >= 45;`],
+      ['DQL: joins', 'Record holder', `SELECT pl.name, p.game, p.wins\nFROM Players pl\n  JOIN Plays p\n    ON pl.pid = p.pid\nWHERE p.wins =\n  (SELECT MAX(wins)\n   FROM Plays);`],
     ],
   },
   {
@@ -1041,23 +1123,23 @@ const DATASETS = [
       },
     ],
     presets: [
-      ['Warm-up', 'The dark side', `SELECT name, homeworld\nFROM Characters\nWHERE side = 'dark';`],
-      ['Warm-up', 'Homeworld unknown', `SELECT name\nFROM Characters\nWHERE homeworld IS NULL;`],
-      ['Warm-up', 'Species count', `SELECT species, COUNT(*)\nFROM Characters\nGROUP BY species\nORDER BY COUNT(*) DESC;`],
-      ['Joins', 'Raised in the desert', `SELECT c.name, p.planet\nFROM Characters c\n  JOIN Planets p\n    ON c.homeworld = p.planet\nWHERE p.climate = 'arid';`],
-      ['Joins', 'Planets nobody is from', `SELECT p.planet\nFROM Planets p\n  LEFT JOIN Characters c\n    ON p.planet = c.homeworld\nWHERE c.cid IS NULL;`],
-      ['Joins', 'Who flies the Falcon?', `SELECT c.name\nFROM Characters c\n  JOIN Flies f\n    ON c.cid = f.cid\nWHERE f.ship = 'Millennium Falcon';`],
-      ['Joins', 'Pilots and ships (3 tables)', `SELECT c.name, s.ship, s.class\nFROM Characters c\n  JOIN Flies f\n    ON c.cid = f.cid\n  JOIN Ships s\n    ON f.ship = s.ship;`],
-      ['Joins', 'RIGHT JOIN: ships with no pilot', `SELECT f.cid, s.ship\nFROM Flies f\n  RIGHT JOIN Ships s\n    ON f.ship = s.ship;`],
-      ['Joins', 'Same homeworld (c1, c2)', `SELECT c1.name, c2.name\nFROM Characters c1, Characters c2\nWHERE c1.homeworld = c2.homeworld\n  AND c1.name < c2.name;`],
+      ['DQL: warm-up', 'The dark side', `SELECT name, homeworld\nFROM Characters\nWHERE side = 'dark';`],
+      ['DQL: warm-up', 'Homeworld unknown', `SELECT name\nFROM Characters\nWHERE homeworld IS NULL;`],
+      ['DQL: warm-up', 'Species count', `SELECT species, COUNT(*)\nFROM Characters\nGROUP BY species\nORDER BY COUNT(*) DESC;`],
+      ['DQL: joins', 'Raised in the desert', `SELECT c.name, p.planet\nFROM Characters c\n  JOIN Planets p\n    ON c.homeworld = p.planet\nWHERE p.climate = 'arid';`],
+      ['DQL: joins', 'Planets nobody is from', `SELECT p.planet\nFROM Planets p\n  LEFT JOIN Characters c\n    ON p.planet = c.homeworld\nWHERE c.cid IS NULL;`],
+      ['DQL: joins', 'Who flies the Falcon?', `SELECT c.name\nFROM Characters c\n  JOIN Flies f\n    ON c.cid = f.cid\nWHERE f.ship = 'Millennium Falcon';`],
+      ['DQL: joins', 'Pilots and ships (3 tables)', `SELECT c.name, s.ship, s.class\nFROM Characters c\n  JOIN Flies f\n    ON c.cid = f.cid\n  JOIN Ships s\n    ON f.ship = s.ship;`],
+      ['DQL: joins', 'RIGHT JOIN: ships with no pilot', `SELECT f.cid, s.ship\nFROM Flies f\n  RIGHT JOIN Ships s\n    ON f.ship = s.ship;`],
+      ['DQL: joins', 'Same homeworld (c1, c2)', `SELECT c1.name, c2.name\nFROM Characters c1, Characters c2\nWHERE c1.homeworld = c2.homeworld\n  AND c1.name < c2.name;`],
       ['DML', 'Destroy Alderaan: SET NULL', `DELETE FROM Planets\nWHERE planet = 'Alderaan';`, { rules: { 'Characters.homeworld': { del: 'SET NULL' } } }],
       ['DML', 'Tatooine: CASCADE chain', `DELETE FROM Planets\nWHERE planet = 'Tatooine';`, { rules: { 'Characters.homeworld': { del: 'CASCADE' }, 'Flies.cid': { del: 'CASCADE' } } }],
       ['DML', 'Mixed rules: CASCADE then RESTRICT', `DELETE FROM Planets\nWHERE planet = 'Tatooine';`, { rules: { 'Characters.homeworld': { del: 'CASCADE' }, 'Flies.cid': { del: 'RESTRICT' } } }],
       ['DML', 'Rename the Falcon: ON UPDATE CASCADE', `UPDATE Ships\nSET ship = 'The Falcon'\nWHERE ship = 'Millennium Falcon';`, { rules: { 'Flies.ship': { upd: 'CASCADE' } } }],
       ['DDL', 'Star Wars schema', `CREATE TABLE Planets (\n  planet  VARCHAR(20) PRIMARY KEY,\n  climate VARCHAR(20)\n);\n\nCREATE TABLE Characters (\n  cid       INT PRIMARY KEY,\n  name      VARCHAR(30) NOT NULL,\n  species   VARCHAR(20),\n  homeworld VARCHAR(20)\n    REFERENCES Planets\n    ON DELETE SET NULL,\n  side      VARCHAR(5)\n    CHECK (side IN ('light', 'dark'))\n);\n\nCREATE TABLE Ships (\n  ship  VARCHAR(30) PRIMARY KEY,\n  class VARCHAR(30)\n);\n\nCREATE TABLE Flies (\n  cid  INT REFERENCES Characters\n         ON DELETE CASCADE,\n  ship VARCHAR(30) REFERENCES Ships,\n  PRIMARY KEY (cid, ship)\n);`],
-      ['Relational algebra', 'σ: the dark side', `σ[side = 'dark'](Characters)`],
-      ['Relational algebra', 'π: which species? (duplicates go)', `π[species](Characters)`],
-      ['Relational algebra', 'Theta join ⋈: where are they from?', `π[name, climate](Characters ⋈[homeworld = planet] Planets)`],
+      ['RA', 'σ: the dark side', `σ[side = 'dark'](Characters)`],
+      ['RA', 'π: which species? (duplicates go)', `π[species](Characters)`],
+      ['RA', 'Theta join ⋈: where are they from?', `π[name, climate](Characters ⋈[homeworld = planet] Planets)`],
     ],
   },
   {
@@ -1088,16 +1170,16 @@ const DATASETS = [
       },
     ],
     presets: [
-      ['Warm-up', 'Tanks', `SELECT name, hp\nFROM Pokemon\nWHERE hp >= 60\nORDER BY hp DESC;`],
-      ['Warm-up', 'Types in the team', `SELECT DISTINCT type\nFROM Pokemon;`],
-      ['Warm-up', 'HP by type', `SELECT type, COUNT(*), AVG(hp)\nFROM Pokemon\nGROUP BY type;`],
-      ['Warm-up', 'Most HP', `SELECT name, hp\nFROM Pokemon\nWHERE hp =\n  (SELECT MAX(hp)\n   FROM Pokemon);`],
-      ['Joins', 'Who beats whom? (3 tables)', `SELECT a.name, b.name\nFROM Pokemon a\n  JOIN Types t\n    ON a.type = t.type\n  JOIN Pokemon b\n    ON t.beats = b.type;`],
-      ['Joins', 'Nobody beats them', `SELECT p.name, p.type\nFROM Pokemon p\n  LEFT JOIN Types t\n    ON p.type = t.beats\nWHERE t.type IS NULL;`],
-      ['Joins', 'Types that beat nothing', `SELECT type\nFROM Types\nWHERE beats IS NULL;`],
-      ['Relational algebra', 'σ: lots of HP', `σ[hp > 100](Pokemon)`],
-      ['Relational algebra', 'π: the types (duplicates go)', `π[type](Pokemon)`],
-      ['Relational algebra', 'Natural join ⋈ on type', `π[name, type, beats](Pokemon ⋈ Types)`],
+      ['DQL: warm-up', 'Tanks', `SELECT name, hp\nFROM Pokemon\nWHERE hp >= 60\nORDER BY hp DESC;`],
+      ['DQL: warm-up', 'Types in the team', `SELECT DISTINCT type\nFROM Pokemon;`],
+      ['DQL: warm-up', 'HP by type', `SELECT type, COUNT(*), AVG(hp)\nFROM Pokemon\nGROUP BY type;`],
+      ['DQL: warm-up', 'Most HP', `SELECT name, hp\nFROM Pokemon\nWHERE hp =\n  (SELECT MAX(hp)\n   FROM Pokemon);`],
+      ['DQL: joins', 'Who beats whom? (3 tables)', `SELECT a.name, b.name\nFROM Pokemon a\n  JOIN Types t\n    ON a.type = t.type\n  JOIN Pokemon b\n    ON t.beats = b.type;`],
+      ['DQL: joins', 'Nobody beats them', `SELECT p.name, p.type\nFROM Pokemon p\n  LEFT JOIN Types t\n    ON p.type = t.beats\nWHERE t.type IS NULL;`],
+      ['DQL: joins', 'Types that beat nothing', `SELECT type\nFROM Types\nWHERE beats IS NULL;`],
+      ['RA', 'σ: lots of HP', `σ[hp > 100](Pokemon)`],
+      ['RA', 'π: the types (duplicates go)', `π[type](Pokemon)`],
+      ['RA', 'Natural join ⋈ on type', `π[name, type, beats](Pokemon ⋈ Types)`],
     ],
   },
   {
@@ -1124,17 +1206,16 @@ const DATASETS = [
       },
     },
     presets: [
-      ['Warm-up', 'The 1980s', `SELECT title, year\nFROM Films\nWHERE year < 1990\nORDER BY year;`],
-      ['Warm-up', 'Films per director', `SELECT director, COUNT(*), AVG(minutes)\nFROM Films\nGROUP BY director;`],
-      ['Warm-up', 'The longest film', `SELECT title, minutes\nFROM Films\nWHERE minutes =\n  (SELECT MAX(minutes)\n   FROM Films);`],
-      ['Joins', 'Award winners', `SELECT f.title, a.award\nFROM Films f\n  JOIN Awards a\n    ON f.title = a.title;`],
-      ['Joins', 'No award in this table', `SELECT f.title\nFROM Films f\n  LEFT JOIN Awards a\n    ON f.title = a.title\nWHERE a.award IS NULL;`],
-      ['Joins', 'Awards per film', `SELECT f.title, COUNT(a.award)\nFROM Films f\n  LEFT JOIN Awards a\n    ON f.title = a.title\nGROUP BY f.title;`],
-      ['Joins', 'Oops: ambiguous columns', `-- Try it: this one has a mistake.\nSELECT title, year\nFROM Films f\n  JOIN Awards a\n    ON f.title = a.title;`],
+      ['DQL: warm-up', 'The 1980s', `SELECT title, year\nFROM Films\nWHERE year < 1990\nORDER BY year;`],
+      ['DQL: warm-up', 'Films per director', `SELECT director, COUNT(*), AVG(minutes)\nFROM Films\nGROUP BY director;`],
+      ['DQL: warm-up', 'The longest film', `SELECT title, minutes\nFROM Films\nWHERE minutes =\n  (SELECT MAX(minutes)\n   FROM Films);`],
+      ['DQL: joins', 'Award winners', `SELECT f.title, a.award\nFROM Films f\n  JOIN Awards a\n    ON f.title = a.title;`],
+      ['DQL: joins', 'No award in this table', `SELECT f.title\nFROM Films f\n  LEFT JOIN Awards a\n    ON f.title = a.title\nWHERE a.award IS NULL;`],
+      ['DQL: joins', 'Awards per film', `SELECT f.title, COUNT(a.award)\nFROM Films f\n  LEFT JOIN Awards a\n    ON f.title = a.title\nGROUP BY f.title;`],
+      ['DQL: joins', 'Oops: ambiguous columns', `-- Try it: this one has a mistake.\nSELECT title, year\nFROM Films f\n  JOIN Awards a\n    ON f.title = a.title;`],
     ],
   },
 ];
-
 /* =====================================================================
    ART: small original illustrations, one per dataset theme.
    "currentColor" follows the theme's ink so outlines work in light and dark.
@@ -1257,7 +1338,6 @@ const ART = {
     <g fill="#e8e27a"><circle cx="40" cy="138" r="2.5"/><circle cx="54" cy="144" r="2.5"/><circle cx="96" cy="140" r="2.5"/></g>
   </svg>`,
 };
-
 /* =====================================================================
    ENGINE: lecture data, lexer, parser, evaluator, and trace builder.
    The trace is a list of full "snapshots" (steps). The UI only renders
@@ -1277,7 +1357,7 @@ const KW = new Set(['SELECT', 'DISTINCT', 'ALL', 'FROM', 'WHERE', 'GROUP', 'BY',
   'OUTER', 'ON', 'LIMIT', 'UNION', 'INTERSECT', 'EXCEPT', 'BETWEEN', 'EXISTS', 'CROSS', 'NATURAL',
   'OFFSET', 'CASE', 'WITH', 'TRUE', 'FALSE', 'FULL', 'USING', 'DELETE', 'UPDATE', 'SET', 'INSERT', 'INTO', 'VALUES',
   'CREATE', 'TABLE', 'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES', 'CONSTRAINT', 'UNIQUE', 'CHECK', 'DEFAULT',
-  'CASCADE', 'RESTRICT', 'NO', 'ACTION', 'DROP', 'ALTER']);
+  'CASCADE', 'RESTRICT', 'NO', 'ACTION', 'DROP', 'ALTER', 'ANY', 'SOME']);
 const TYPES = { INT: 'number', INTEGER: 'number', SMALLINT: 'number', BIGINT: 'number', SERIAL: 'number', NUMERIC: 'number', DECIMAL: 'number',
   REAL: 'number', FLOAT: 'number', 'DOUBLE PRECISION': 'number', VARCHAR: 'text', CHAR: 'text', CHARACTER: 'text', TEXT: 'text',
   DATE: 'date', TIME: 'date', TIMESTAMP: 'date', BOOLEAN: 'boolean', BOOL: 'boolean' };
@@ -1361,7 +1441,7 @@ function parse(src) {
   if (toks.length === 1) throw new SqlError('Type a query first (start with SELECT), or a relational algebra expression such as σ[gpa > 3.5](Students).', null, 0, 0);
 
   function parseQuery() {
-    const q = { depth, spans: {}, items: [], selectItems: [], star: false, distinct: false, where: null, groupBy: [], orderBy: [] };
+    const q = { depth, spans: {}, items: [], selectItems: [], star: false, distinct: false, where: null, groupBy: [], having: null, orderBy: [], limit: null };
     clause = 'SELECT';
     if (!isKw('SELECT')) err(depth ? 'A subquery must start with SELECT' : 'A statement must start with SELECT, UPDATE or DELETE');
     const selTok = next();
@@ -1420,7 +1500,13 @@ function parse(src) {
       for (;;) { q.groupBy.push(parseExpr()); if (isP(',')) { next(); continue; } break; }
       q.spans.group = [g.s, last().e];
     }
-    if (isKw('HAVING')) { clause = 'HAVING'; err('HAVING is not supported in this tool yet (it comes in a later lecture).'); }
+    if (isKw('HAVING')) {
+      clause = 'HAVING';
+      const h = next();
+      if (peek().t === 'eof' || isKw('ORDER') || isP(')') || isP(';')) err('HAVING needs a condition');
+      q.having = parseExpr();
+      q.spans.having = [h.s, last().e];
+    }
     if (isKw('ORDER')) {
       clause = 'ORDER BY';
       const o = next(); expectKw('BY');
@@ -1434,8 +1520,15 @@ function parse(src) {
       }
       q.spans.order = [o.s, last().e];
     }
-    for (const w of ['LIMIT', 'OFFSET', 'UNION', 'INTERSECT', 'EXCEPT'])
-      if (isKw(w)) err(`${w} is not supported in this tool.`);
+    if (isKw('LIMIT')) {
+      clause = 'LIMIT';
+      const l = next();
+      if (peek().t !== 'num' || !Number.isInteger(peek().v)) err('LIMIT needs a whole number, e.g. LIMIT 1');
+      q.limit = next().v;
+      q.spans.limit = [l.s, last().e];
+    }
+    if (isKw('OFFSET')) err('OFFSET is not supported in this tool.');
+    if (depth && (isKw('UNION') || isKw('INTERSECT') || isKw('EXCEPT'))) err(`${peek().up} inside a subquery is not supported here. Put it at the top level.`);
     q.e = last().e;
     return q;
   }
@@ -1471,7 +1564,7 @@ function parse(src) {
       const sub = parseSub();
       const close = expectP(')');
       if (isKw('AS')) next();
-      if (peek().t !== 'id') err('A subquery in FROM needs a name (a tuple variable), e.g. ( … ) CSStudents');
+      if (peek().t !== 'id') err('A subquery in FROM needs a name, e.g. ( … ) AS per_member');
       const a = next();
       return { sub, alias: a.v, s: open.s, e: a.e, subSpan: [open.s, close.e], aliasSpan: [a.s, a.e] };
     }
@@ -1503,7 +1596,14 @@ function parse(src) {
     const t = peek();
     if (t.t === 'op' && ['=', '<', '>', '<=', '>=', '<>'].includes(t.v)) {
       next();
-      if (isKw('ALL') || isKw('ANY')) err(`${peek().up} is not supported in this tool yet.`);
+      if (isKw('ALL') || isKw('ANY') || isKw('SOME')) {
+        const qt = next();
+        if (!isP('(') || !isKw('SELECT', 1)) err(`${qt.up} needs a subquery, e.g. ${t.v} ${qt.up} (SELECT …)`);
+        next();
+        const sub = parseSub();
+        const close = expectP(')');
+        return { type: 'quant', op: t.v, all: qt.up === 'ALL', word: qt.up, x: l, sub, s: l.s, e: close.e, subS: sub.s, subE: close.e - 1 };
+      }
       const r = parseAdd();
       return { type: 'bin', op: t.v, l, r, s: l.s, e: r.e };
     }
@@ -1534,7 +1634,11 @@ function parse(src) {
       next();
       if (!isP('(')) err('IN needs a list in parentheses, e.g. IN (\'good\', \'new\')');
       next();
-      if (isKw('SELECT')) err('IN (SELECT …) is not supported in this tool yet. Use a list of values.');
+      if (isKw('SELECT')) {
+        const sub = parseSub();
+        const close = expectP(')');
+        return { type: 'in', x: l, list: [], sub, neg, s: l.s, e: close.e, subS: sub.s, subE: close.e - 1 };
+      }
       const list = [];
       for (;;) { list.push(parseAdd()); if (isP(',')) { next(); continue; } break; }
       const close = expectP(')');
@@ -1561,7 +1665,14 @@ function parse(src) {
     if (t.t === 'num' || t.t === 'str') { next(); return { type: 'lit', v: t.v, s: t.s, e: t.e }; }
     if (t.t === 'kw' && t.up === 'NULL') { next(); return { type: 'lit', v: null, s: t.s, e: t.e }; }
     if (t.t === 'kw' && (t.up === 'TRUE' || t.up === 'FALSE')) { next(); return { type: 'lit', v: t.up === 'TRUE', s: t.s, e: t.e }; }
-    if (t.t === 'kw' && t.up === 'EXISTS') err('EXISTS is not supported in this tool yet.');
+    if (t.t === 'kw' && t.up === 'EXISTS') {
+      next();
+      if (!isP('(') || !isKw('SELECT', 1)) err('EXISTS needs a subquery in parentheses, e.g. EXISTS (SELECT 1 FROM …)');
+      next();
+      const sub = parseSub();
+      const close = expectP(')');
+      return { type: 'exists', sub, s: t.s, e: close.e, subS: sub.s, subE: close.e - 1 };
+    }
     if (isP('(')) {
       const open = next();
       if (isKw('SELECT')) {
@@ -1721,12 +1832,15 @@ function parse(src) {
     let l = raUnary();
     for (;;) {
       const t = peek();
-      if (t.t === 'ra' && '⟕⟖⟗'.includes(t.v)) err('Outer joins are not supported in relational algebra mode here. Try them in SQL with LEFT, RIGHT or FULL JOIN.');
-      const op = joinOp(t);
+      let outer = null;
+      if (t.t === 'ra' && '⟕⟖⟗'.includes(t.v)) outer = { '⟕': 'L', '⟖': 'R', '⟗': 'F' }[t.v];
+      else if (t.t === 'kw' && ['LEFT', 'RIGHT', 'FULL'].includes(t.up)) outer = t.up[0];
+      const op = outer ? '⋈' : joinOp(t);
       if (!op) break;
       next();
+      if (outer && t.t === 'kw') { if (isKw('OUTER')) next(); if (!isKw('JOIN')) err(`Expected JOIN after ${t.up}`); next(); }
       if ((t.up === 'NATURAL' || t.up === 'CROSS') && isKw('JOIN')) next();
-      const node = { op, l, s: l.s, opS: t.s };
+      const node = { op, l, s: l.s, opS: t.s, outer };
       if (op === '⋈' && opensSub(0)) {
         const close = raSub('⋈');
         clause = '⋈';
@@ -1876,7 +1990,7 @@ function parse(src) {
   const t0 = toks[0], t1 = toks[1] || {};
   const raMode = toks.some(t => t.t === 'ra')
     || (t0.t === 'id' && !toks.some(t => t.t === 'kw' && t.up === 'FROM'))
-    || (t0.t === 'p' && t0.v === '(')
+    || (t0.t === 'p' && t0.v === '(' && !(t1.t === 'kw' && t1.up === 'SELECT' && !['[', '{', '_'].includes((toks[2] || {}).v)))
     || (t0.t === 'kw' && t0.up === 'SELECT' && ((t1.t === 'p' && (t1.v === '[' || t1.v === '{')) || (t1.t === 'id' && t1.v === '_')));
   if (raMode) return parseRAScript();
   if (isKw('DROP') || isKw('ALTER')) throw new SqlError(`${peek().up} TABLE is not supported here. Write the tables with CREATE TABLE.`, 'CREATE', peek().s, peek().e);
@@ -1890,19 +2004,53 @@ function parse(src) {
     }
     return { kind: 'ddl', tables };
   }
+  /* ---- set operations: INTERSECT binds tighter than UNION / EXCEPT ---- */
+  function parseOperand() {
+    if (isP('(') && isKw('SELECT', 1)) {
+      const o = next();
+      const q = parseQuery();
+      expectP(')');
+      return Object.assign(q, { s: o.s, e: last().e });
+    }
+    return parseQuery();
+  }
+  function setNode(l, kw) {
+    const t = next();
+    let all = false;
+    if (isKw('ALL')) { next(); all = true; } else if (isKw('DISTINCT')) next();
+    const opSpan = [t.s, last().e];
+    clause = kw;
+    if (!isKw('SELECT') && !(isP('(') && isKw('SELECT', 1))) err(`${kw} must be followed by another SELECT`);
+    return { kw, all, opSpan, l };
+  }
+  function parseInter() {
+    let q = parseOperand();
+    while (isKw('INTERSECT')) { const n = setNode(q, 'INTERSECT'); n.r = parseOperand(); q = Object.assign(n, { kind: 'setop', s: q.s, e: n.r.e }); }
+    return q;
+  }
+  function parseUnion() {
+    let q = parseInter();
+    while (isKw('UNION') || isKw('EXCEPT')) { const n = setNode(q, peek().up); n.r = parseInter(); q = Object.assign(n, { kind: 'setop', s: q.s, e: n.r.e }); }
+    if (q.kind === 'setop') {
+      const bad = [];
+      (function rec(x) { if (x.kind === 'setop') { rec(x.l); rec(x.r); } else if (x.orderBy.length) bad.push(x); })(q);
+      if (bad.length) throw new SqlError('ORDER BY together with UNION / INTERSECT / EXCEPT is not supported here. Remove the ORDER BY.', 'ORDER BY', bad[0].spans.order[0], bad[0].spans.order[1]);
+    }
+    return q;
+  }
   let q;
   if (isKw('DELETE')) q = parseDelete();
   else if (isKw('UPDATE')) q = parseUpdate();
   else if (isKw('INSERT')) throw new SqlError('INSERT is not supported in this tool yet. Try UPDATE or DELETE.', 'INSERT', peek().s, peek().e);
-  else q = parseQuery();
+  else q = parseUnion();
   if (isP(';')) next();
   if (peek().t !== 'eof') {
     const t = peek();
     if (t.t === 'kw' && ['SELECT', 'UPDATE', 'DELETE'].includes(t.up) && toks[p - 1] && toks[p - 1].v === ';')
       throw new SqlError('Only one statement runs at a time. Put -- in front of the other version (or delete it), then Run.', null, t.s, t.e);
-    if (t.t === 'kw' && ['WHERE', 'GROUP', 'ORDER', 'FROM', 'SELECT', 'DISTINCT'].includes(t.up)) {
+    if (t.t === 'kw' && ['WHERE', 'GROUP', 'HAVING', 'ORDER', 'FROM', 'SELECT', 'DISTINCT', 'LIMIT'].includes(t.up)) {
       const cl = t.up === 'GROUP' ? 'GROUP BY' : t.up === 'ORDER' ? 'ORDER BY' : t.up;
-      throw new SqlError(`${cl} is out of place. Clauses go in this order: SELECT, FROM, WHERE, GROUP BY, ORDER BY.`, cl, t.s, t.e);
+      throw new SqlError(`${cl} is out of place. Clauses go in this order: SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT.`, cl, t.s, t.e);
     }
     if (t.t === 'p' && t.v === ')') throw new SqlError('There is a ")" without a matching "("', clause, t.s, t.e);
     throw new SqlError(`Unexpected ${desc(t)} after the end of the query`, clause, t.s, t.e);
@@ -1926,6 +2074,34 @@ const typeName = v => (typeof v === 'number' ? 'number' : typeof v === 'string' 
 
 /* ---------------- Evaluation ---------------- */
 let CUR = { clause: null };
+/* Rows of the enclosing queries while a correlated subquery runs (innermost last). */
+const OUTER = [];
+let CORR_SCOPES = null;
+const subQ = n => (n.type === 'sub' ? n.q : n.sub);
+const colFmtOf = n => (n && n !== '*' && n.type === 'col' ? COLFMT[n.name.toLowerCase()] || null : null);
+/* Conceptually re-run a correlated subquery for one row of the outer query. */
+function runCorr(n, row) {
+  if (!n.cache) n.cache = new Map();
+  if (n.cache.has(row)) return n.cache.get(row);
+  const saved = CUR.clause;
+  OUTER.push(row);
+  let res;
+  try {
+    res = traceQuery(subQ(n), { T: { steps: [], crumbs: [], src: n.srcText, opts: {} }, scopeId: 'corr', scopeLabel: null, kind: 'scalar', extraLeft: [], scopeSpan: null, parentScope: n.pscope });
+  } finally { OUTER.pop(); CUR.clause = saved; }
+  n.cache.set(row, res);
+  return res;
+}
+function scalarOf(n, res) {
+  if (res.cols.length !== 1) throw new SqlError(`A subquery used as a value must return one column; this one returns ${res.cols.length}.`, CUR.clause, n.s, n.e);
+  if (res.rows.length > 1) throw new SqlError(`For one of the rows, this subquery returns ${res.rows.length} rows, but a subquery used as a value must return at most one.`, CUR.clause, n.s, n.e);
+  return res.rows.length ? res.rows[0].vals[0] : null;
+}
+function cmpOp(op, a, b, n) {
+  if (a === null || b === null) return null;
+  sameType(a, b, n);
+  switch (op) { case '=': return a === b; case '<>': return a !== b; case '<': return a < b; case '>': return a > b; case '<=': return a <= b; case '>=': return a >= b; }
+}
 
 /* child expressions of a node (subqueries are not entered) */
 function kids(n) {
@@ -1935,6 +2111,7 @@ function kids(n) {
     case 'in': return [n.x].concat(n.list);
     case 'between': return [n.x, n.lo, n.hi];
     case 'like': return [n.x, n.pat];
+    case 'quant': return [n.x];
     case 'agg': return n.arg === '*' ? [] : [n.arg];
   }
   return [];
@@ -1949,8 +2126,21 @@ function hasAgg(n) { let h = false; walk(n, x => { if (x.type === 'agg') h = tru
 function evalE(n, row, grp) {
   switch (n.type) {
     case 'lit': return n.v;
-    case 'col': return row[n.idx];
-    case 'sub': return n.value;
+    case 'col': return n.outer ? OUTER[OUTER.length - n.outer][n.idx] : row[n.idx];
+    case 'sub': return n.correlated ? scalarOf(n, runCorr(n, row)) : n.value;
+    case 'exists': return (n.correlated ? runCorr(n, row) : n.res).rows.length > 0;
+    case 'quant': {
+      const v = evalE(n.x, row, grp);
+      const vals = n.correlated ? runCorr(n, row).rows.map(r => r.vals[0]) : n.subVals;
+      let sawNull = false;
+      for (const w of vals) {
+        const c = cmpOp(n.op, v, w, n);
+        if (c === null) sawNull = true;
+        else if (n.all && !c) return false;
+        else if (!n.all && c) return true;
+      }
+      return sawNull ? null : n.all;
+    }
     case 'neg': { const v = evalE(n.x, row, grp); if (v === null) return null; needNum(v, n); return -v; }
     case 'not': { const v = evalE(n.x, row, grp); return v === null ? null : !v; }
     case 'isnull': { const v = evalE(n.x, row, grp); return n.neg ? v !== null : v === null; }
@@ -1965,7 +2155,8 @@ function evalE(n, row, grp) {
       const v = evalE(n.x, row, grp);
       if (v === null) return null;
       let sawNull = false, hit = false;
-      n.list.forEach(it => { const w = evalE(it, row, grp); if (w === null) sawNull = true; else { sameType(v, w, n); if (w === v) hit = true; } });
+      const vals = n.sub ? (n.correlated ? runCorr(n, row).rows.map(r => r.vals[0]) : n.subVals) : n.list.map(it => evalE(it, row, grp));
+      vals.forEach(w => { if (w === null) sawNull = true; else { sameType(v, w, n); if (w === v) hit = true; } });
       if (hit) return !n.neg;
       if (sawNull) return null;
       return n.neg;
@@ -2049,7 +2240,7 @@ function aggregate(n, rows) {
       break;
     }
   }
-  return { value, vals, used, dup, formula, kind: n.fn === 'AVG' ? 'avg' : null };
+  return { value, vals, used, dup, formula, kind: n.fn === 'AVG' ? 'avg' : n.fn !== 'COUNT' ? colFmtOf(n.arg) : null };
 }
 
 /* ---------------- Trace helpers ---------------- */
@@ -2102,23 +2293,45 @@ function tableSpec(rel, o = {}) {
 }
 const placeholder = (label) => ({ kind: 'placeholder', label: label || '' });
 
-function refCols(n) { const s = new Set(); walk(n, x => { if (x.type === 'col') s.add(x.idx); }); return s; }
+function refCols(n) { const s = new Set(); walk(n, x => { if (x.type === 'col' && !x.outer) s.add(x.idx); }); return s; }
 
 /* Text of an expression with rows substituted, e.g. "3.8 > 3.5" */
-function substText(src, n, row) {
+/* Columns of an enclosing query that a subquery reads (correlated references). */
+function outerRefs(q, level, out = new Set()) {
+  const visit = x => walk(x, y => {
+    if (y.type === 'col' && y.outer === level) out.add(y.idx);
+    if (y.type === 'sub' || y.type === 'exists' || y.type === 'quant' || (y.type === 'in' && y.sub)) outerRefs(subQ(y), level + 1, out);
+  });
+  if (!q || !q.selectItems) return out;
+  q.selectItems.forEach(s => visit(s.expr));
+  visit(q.where); visit(q.having);
+  q.groupBy.forEach(visit); q.orderBy.forEach(o => visit(o.expr));
+  q.items.forEach(it => { if (it.join && it.join.on) visit(it.join.on); if (it.sub) outerRefs(it.sub, level + 1, out); });
+  return out;
+}
+const litOf = (v, kind) => (typeof v === 'string' ? `'${v}'` : fmt(v, kind));
+function substText(src, n, row, grp) {
   const wrap = s => (n.paren ? `(${s})` : s);
+  const S = x => substText(src, x, row, grp);
+  const list = vs => `(${vs.length > 6 ? vs.slice(0, 6).map(fmtLit).join(', ') + ', …' : vs.map(fmtLit).join(', ')})`;
   switch (n.type) {
     case 'lit': return wrap(src.slice(n.s, n.e));
-    case 'col': return wrap(fmtLit(row[n.idx]));
-    case 'sub': return wrap(fmtLit(n.value));
-    case 'neg': return wrap('-' + substText(src, n.x, row));
-    case 'not': return wrap('NOT ' + substText(src, n.x, row));
-    case 'isnull': return wrap(`${substText(src, n.x, row)} IS ${n.neg ? 'NOT ' : ''}NULL`);
-    case 'between': return wrap(`${substText(src, n.x, row)} ${n.neg ? 'NOT ' : ''}BETWEEN ${substText(src, n.lo, row)} AND ${substText(src, n.hi, row)}`);
-    case 'in': return wrap(`${substText(src, n.x, row)} ${n.neg ? 'NOT ' : ''}IN (${n.list.map(x => substText(src, x, row)).join(', ')})`);
-    case 'like': return wrap(`${substText(src, n.x, row)} ${n.neg ? 'NOT ' : ''}LIKE ${substText(src, n.pat, row)}`);
-    case 'agg': return wrap(src.slice(n.s, n.e));
-    case 'bin': return wrap(`${substText(src, n.l, row)} ${n.op} ${substText(src, n.r, row)}`);
+    case 'col': return wrap(litOf(n.outer ? OUTER[OUTER.length - n.outer][n.idx] : row[n.idx], colFmtOf(n)));
+    case 'sub': {
+      if (!n.correlated) return wrap(litOf(n.value, n.valueFmt));
+      const res = runCorr(n, row);
+      return wrap(litOf(scalarOf(n, res), res.fmts && res.fmts[0]));
+    }
+    case 'exists': { const k = (n.correlated ? runCorr(n, row) : n.res).rows.length; return wrap(`EXISTS (${k} row${k === 1 ? '' : 's'})`); }
+    case 'quant': return wrap(`${S(n.x)} ${n.op} ${n.word} ${list(n.correlated ? runCorr(n, row).rows.map(r => r.vals[0]) : n.subVals)}`);
+    case 'neg': return wrap('-' + S(n.x));
+    case 'not': return wrap('NOT ' + S(n.x));
+    case 'isnull': return wrap(`${S(n.x)} IS ${n.neg ? 'NOT ' : ''}NULL`);
+    case 'between': return wrap(`${S(n.x)} ${n.neg ? 'NOT ' : ''}BETWEEN ${S(n.lo)} AND ${S(n.hi)}`);
+    case 'in': return wrap(`${S(n.x)} ${n.neg ? 'NOT ' : ''}IN ${n.sub ? list(n.correlated ? runCorr(n, row).rows.map(r => r.vals[0]) : n.subVals) : `(${n.list.map(S).join(', ')})`}`);
+    case 'like': return wrap(`${S(n.x)} ${n.neg ? 'NOT ' : ''}LIKE ${S(n.pat)}`);
+    case 'agg': { if (!grp) return wrap(src.slice(n.s, n.e)); const r = aggregate(n, grp); return wrap(fmt(r.value, r.kind)); }
+    case 'bin': return wrap(`${S(n.l)} ${n.op} ${S(n.r)}`);
   }
   return '';
 }
@@ -2144,7 +2357,7 @@ function buildTrace(src, opts) {
   const q = parse(src);
   const T = { steps: [], crumbs: [], src, opts: opts || {} };
   const root = { T, scopeId: 'main', scopeLabel: null, kind: 'main', extraLeft: [], scopeSpan: null, parentScope: null };
-  const result = q.kind === 'ra' ? traceRA(q, root) : q.kind === 'ddl' ? traceDDL(q, root) : q.kind ? traceDML(q, root) : traceQuery(q, root);
+  const result = q.kind === 'setop' ? traceSetOp(q, root) : q.kind === 'ra' ? traceRA(q, root) : q.kind === 'ddl' ? traceDDL(q, root) : q.kind ? traceDML(q, root) : traceQuery(q, root);
   return { steps: T.steps, crumbs: T.crumbs, result, dml: !!q.kind };
 }
 
@@ -2228,9 +2441,14 @@ function traceQuery(q, ctx) {
   }
   function resolve(n, clause) {
     const r = findCol(scope, n);
-    if (r.idx !== undefined) { n.idx = r.idx; return; }
-    if (scope.parent && findCol(scope.parent, n).idx !== undefined)
-      throw E(clause, `"${text(src, n)}" belongs to the outer query. Correlated subqueries are not supported in this tool.`, n);
+    if (r.idx !== undefined) { n.idx = r.idx; n.outer = 0; return; }
+    if (r.err !== 'amb' && r.err !== 'nocol') {
+      /* not here: maybe the enclosing query's row (a correlated reference) */
+      for (let sc = scope.parent, lvl = 1; sc; sc = sc.parent, lvl++) {
+        const o = findCol(sc, n);
+        if (o.idx !== undefined) { n.idx = o.idx; n.outer = lvl; if (CORR_SCOPES) CORR_SCOPES.add(sc); return; }
+      }
+    }
     if (r.err === 'noalias') {
       const byTable = items.find(i => i.table && i.table.toLowerCase() === n.q.toLowerCase());
       if (byTable) throw E(clause, `${n.q} was renamed ${byTable.alias} in FROM, so write ${byTable.alias}.${n.name}`, n);
@@ -2255,25 +2473,55 @@ function traceQuery(q, ctx) {
     })(n);
   }
 
-  /* ---- 2. scalar subqueries run before the outer query ---- */
-  const subs = [];
-  const collect = n => walk(n, x => { if (x.type === 'sub') subs.push(x); });
+  /* ---- 2. subqueries: uncorrelated ones run once, before the outer query ---- */
+  const subNodes = [];
+  const collect = n => walk(n, x => { if (x.type === 'sub' || x.type === 'exists' || x.type === 'quant' || (x.type === 'in' && x.sub)) subNodes.push(x); });
   q.selectItems.forEach(s => collect(s.expr));
   collect(q.where);
+  collect(q.having);
   joins.forEach(j => collect(j.on));
   q.orderBy.forEach(o => collect(o.expr));
   q.groupBy.forEach(g => collect(g));
+  subNodes.sort((a, b) => a.s - b.s);
+  const width = items.reduce((acc, it) => acc + it.cols.length, 0);
+  subNodes.forEach(n => {
+    n.pscope = scope; n.srcText = src; n.cache = null;
+    /* a dry run with an all-NULL outer row tells us whether it looks outside itself */
+    const saved = CORR_SCOPES;
+    CORR_SCOPES = new Set();
+    OUTER.push(new Array(width).fill(null));
+    try { traceQuery(subQ(n), { T: { steps: [], crumbs: [], src, opts: {} }, scopeId: 'probe', scopeLabel: null, kind: 'scalar', extraLeft: [], scopeSpan: null, parentScope: scope }); }
+    finally { OUTER.pop(); }
+    const hits = CORR_SCOPES;
+    CORR_SCOPES = saved;
+    if (saved) hits.forEach(h => saved.add(h));
+    n.correlated = [...hits].some(h => { for (let s2 = scope; s2; s2 = s2.parent) if (s2 === h) return true; return false; });
+    n.cache = null;
+  });
   const valuePanels = [];
-  subs.forEach((sn, si) => {
-    const label = subs.length > 1 ? `inner ${si + 1}` : 'inner';
-    const innerCtx = { T: ctx.T, scopeId: `sub@${sn.s}`, scopeLabel: label, kind: 'scalar', extraLeft: [], scopeSpan: [sn.s, sn.e], parentScope: scope };
-    const res = traceQuery(sn.q, innerCtx);
-    const cl = clauseAt(q, sn.s);
-    if (res.cols.length !== 1) throw new SqlError(`A subquery used as a value must return one column; this one returns ${res.cols.length}.`, cl, sn.s, sn.e);
-    if (res.rows.length > 1) throw new SqlError(`This subquery returns ${res.rows.length} rows, but a subquery used as a value must return exactly one.`, cl, sn.s, sn.e);
-    sn.value = res.rows.length ? res.rows[0].vals[0] : null;
-    sn.valueKey = res.rows.length ? ck(res, res.rows[0], 0) : null;
-    valuePanels.push({ kind: 'value', title: subs.length > 1 ? `subquery ${si + 1}` : 'subquery', v: fmt(sn.value, res.fmts && res.fmts[0]), k: `sv|${sn.s}`, f: sn.valueKey });
+  const visible = subNodes.filter(n => !n.correlated);
+  visible.forEach((n, si) => {
+    const label = visible.length > 1 ? `inner ${si + 1}` : 'inner';
+    const span = n.type === 'sub' ? [n.s, n.e] : [n.subS, n.subE];
+    const kind = n.type === 'sub' ? 'scalar' : n.type === 'exists' ? 'exists' : 'inlist';
+    const res = traceQuery(subQ(n), { T: ctx.T, scopeId: `sub@${span[0]}`, scopeLabel: label, kind, extraLeft: [], scopeSpan: span, parentScope: scope, listTag: n.type === 'quant' ? `${n.word} list` : null });
+    const cl = clauseAt(q, n.s);
+    if (n.type === 'sub') {
+      if (res.cols.length !== 1) throw new SqlError(`A subquery used as a value must return one column; this one returns ${res.cols.length}.`, cl, n.s, n.e);
+      if (res.rows.length > 1) throw new SqlError(`This subquery returns ${res.rows.length} rows, but a subquery used as a value must return at most one.`, cl, n.s, n.e);
+      n.value = res.rows.length ? res.rows[0].vals[0] : null;
+      n.valueFmt = res.fmts && res.fmts[0];
+      n.valueKey = res.rows.length ? ck(res, res.rows[0], 0) : null;
+      valuePanels.push({ kind: 'value', title: visible.length > 1 ? `subquery ${si + 1}` : 'subquery', v: fmt(n.value, res.fmts && res.fmts[0]), k: `sv|${n.s}`, f: n.valueKey });
+    } else if (n.type === 'exists') {
+      n.res = res;
+      valuePanels.push(tableSpec(res, { cls: 'temp', title: 'subquery', tag: `EXISTS: ${res.rows.length ? 'TRUE' : 'FALSE'}`, empty: 'no rows' }));
+    } else {
+      const what = n.type === 'in' ? 'IN (SELECT …)' : `${n.word} (SELECT …)`;
+      if (res.cols.length !== 1) throw new SqlError(`${what} needs a subquery with one column; this one returns ${res.cols.length}.`, cl, n.subS, n.subE);
+      n.subVals = res.rows.map(r => r.vals[0]);
+      valuePanels.push(tableSpec(res, { cls: 'temp', title: 'subquery', tag: n.type === 'in' ? `${n.neg ? 'NOT ' : ''}IN list` : `${n.word} list`, empty: 'no rows' }));
+    }
   });
 
   /* ---- 3. bind everything ---- */
@@ -2284,7 +2532,7 @@ function traceQuery(q, ctx) {
     bind(j.on, 'ON', false);
     const lim = items[k + 1].offset + items[k + 1].cols.length;
     walk(j.on, x => {
-      if (x.type === 'col' && x.idx >= lim)
+      if (x.type === 'col' && !x.outer && x.idx >= lim)
         throw E('ON', `"${text(src, x)}" belongs to a table that is joined later. This ON can only use ${items.slice(0, k + 2).map(i => i.alias).join(' and ')}.`, x);
     });
   });
@@ -2292,14 +2540,14 @@ function traceQuery(q, ctx) {
     if (g.type !== 'col') throw E('GROUP BY', 'GROUP BY takes column names in this tool', g);
     bind(g, 'GROUP BY', false);
   });
-  const isAgg = q.groupBy.length > 0 || q.selectItems.some(s => hasAgg(s.expr)) || q.orderBy.some(o => hasAgg(o.expr));
+  const isAgg = q.groupBy.length > 0 || !!q.having || q.selectItems.some(s => hasAgg(s.expr)) || q.orderBy.some(o => hasAgg(o.expr));
   if (isAgg && q.star) throw new SqlError('SELECT * cannot be combined with aggregation or GROUP BY. Name the columns and aggregates you want.', 'SELECT', q.starSpan[0], q.starSpan[1]);
   const groupIdx = new Set(q.groupBy.map(g => g.idx));
   const checkGrouped = (n, clause) => {
     (function rec(x) {
       if (!x || x === '*') return;
       if (x.type === 'agg') return;
-      if (x.type === 'col' && !groupIdx.has(x.idx)) {
+      if (x.type === 'col' && !x.outer && !groupIdx.has(x.idx)) {
         if (!q.groupBy.length) throw E(clause, `"${text(src, x)}" can't sit next to an aggregate without GROUP BY: the aggregate collapses all rows into one, so which ${x.name} would it show?`, x);
         throw E(clause, `"${text(src, x)}" must appear in GROUP BY or be inside an aggregate like COUNT(…).`, x);
       }
@@ -2307,12 +2555,13 @@ function traceQuery(q, ctx) {
     })(n);
   };
   if (isAgg) q.selectItems.forEach(s => checkGrouped(s.expr, 'SELECT'));
+  if (q.having) { bind(q.having, 'HAVING', true); checkGrouped(q.having, 'HAVING'); }
 
   /* ---- output columns ---- */
   let outCols;
   if (q.star) outCols = items.flatMap(it => it.cols.map(c => ({ name: c, label: multi ? `${it.alias}.${c}` : c, q: it.alias })));
   else outCols = q.selectItems.map(s => ({ name: s.alias || text(src, s.expr), label: s.alias || text(src, s.expr) }));
-  const outFmts = q.star ? null : q.selectItems.map(s => (s.expr.type === 'agg' && s.expr.fn === 'AVG' ? 'avg' : null));
+  const outFmts = q.star ? null : q.selectItems.map(s => (s.expr.type === 'agg' ? (s.expr.fn === 'AVG' ? 'avg' : s.expr.fn !== 'COUNT' ? colFmtOf(s.expr.arg) : null) : colFmtOf(s.expr)));
 
   /* ---- ORDER BY binding ---- */
   const orderKeys = q.orderBy.map(o => {
@@ -2515,7 +2764,9 @@ function traceQuery(q, ctx) {
     CUR.clause = 'WHERE';
     const w = q.where;
     const refs = refCols(w);
-    const pass = R0.rows.map(r => evalE(w, r.vals, null) === true);
+    const wv = R0.rows.map(r => evalE(w, r.vals, null));
+    const pass = wv.map(v => v === true);
+    const wmark = i => (pass[i] ? 'yes' : wv[i] === null ? 'unk' : 'no');
     R1 = {
       rid: newRid('W'), title: two ? `${items[0].alias} × ${items[1].alias}` : R0.title, badge: two ? null : R0.badge,
       tag: two ? null : (R0.tag === 'temporary' ? 'temporary' : null),
@@ -2528,11 +2779,24 @@ function traceQuery(q, ctx) {
 
     if (!two) {
       const colCls = R0.cols.map((c, j) => (refs.has(j) ? 'chk' : ''));
+      const corrW = [];
+      walk(w, x => { if (x.correlated) corrW.push(x); });
+      corrW.forEach(n => outerRefs(subQ(n), 1).forEach(i => refs.add(i)));
+      colCls.forEach((c, j) => { if (refs.has(j)) colCls[j] = 'chk'; });
+      const gLabel = n => (n.type === 'exists' ? 'EXISTS (…)' : n.type === 'sub' ? '(SELECT …)' : n.type === 'in' ? 'IN (SELECT …)' : `${n.word} (…)`);
+      const gVal = (n, r) => {
+        const res = runCorr(n, r.vals);
+        if (n.type === 'exists') return `${res.rows.length} row${res.rows.length === 1 ? '' : 's'}`;
+        if (n.type === 'sub') return res.rows.length ? fmt(res.rows[0].vals[0], res.fmts && res.fmts[0]) : 'NULL';
+        const vs = res.rows.map(x => fmt(x.vals[0]));
+        return `{${vs.length > 4 ? vs.slice(0, 4).join(', ') + ', …' : vs.join(', ')}}`;
+      };
+      const ghosts = upto => (corrW.length ? corrW.map((n, k) => ({ id: `c${k}`, label: gLabel(n), vals: R0.rows.map((r, i) => (i < upto ? gVal(n, r) : '?')) })) : undefined);
       push(ctx, 'WHERE', {
-        hl: [S.where], left: [tableSpec(R0, { qual: multi, colCls })], right: [placeholder('?')],
-        caption: 'Which rows pass?',
+        hl: [S.where], left: [tableSpec(R0, { qual: multi, colCls, ghost: ghosts(0) })], right: [placeholder('?')],
+        caption: corrW.length ? 'The inner query uses this row, so it runs once for every row' : 'Which rows pass?',
       });
-      if (ctx.T.opts.rowByRow) {
+      if (ctx.T.opts.rowByRow || corrW.length) {
         let kept = 0;
         R0.rows.forEach((r, i) => {
           if (pass[i]) kept++;
@@ -2541,11 +2805,12 @@ function traceQuery(q, ctx) {
             hl: [S.where],
             left: [tableSpec(R0, { qual: multi,
               colCls,
+              ghost: ghosts(i + 1),
               rowCls: (rr, ii) => (ii === i ? 'active' : ii < i ? (pass[ii] ? 'pass' : 'fail') : 'pending'),
               cellCls: (rr, ii, j) => (ii === i && refs.has(j) ? 'chk2' : ''),
-              mark: (rr, ii) => (ii <= i ? (pass[ii] ? 'yes' : 'no') : null),
+              mark: (rr, ii) => (ii <= i ? wmark(ii) : null),
               badge: R0.badge,
-            })],
+            })].concat(corrW.map(n => tableSpec(runCorr(n, r.vals), { cls: 'temp', title: 'inner query, for this row', tag: 'correlated', empty: 'no rows' }))),
             right: [kept ? tableSpec(partial(kept), { qual: multi, cls: 'out' }) : placeholder('')],
             caption: null,
             test: `${substText(src, w, r.vals)} → ${v === null ? 'UNKNOWN' : v ? 'TRUE' : 'FALSE'}`, testOk: v === true,
@@ -2554,12 +2819,13 @@ function traceQuery(q, ctx) {
         });
       } else {
         const marked = tableSpec(R0, { qual: multi,
-          colCls, rowCls: (r, i) => (pass[i] ? 'pass' : 'fail'), mark: (r, i) => (pass[i] ? 'yes' : 'no'),
+          colCls, ghost: ghosts(R0.rows.length), rowCls: (r, i) => (pass[i] ? 'pass' : 'fail'), mark: (r, i) => wmark(i),
         });
         const nKeep = pass.filter(Boolean).length;
+        const nUnk = wv.filter(v => v === null).length;
         push(ctx, 'WHERE', {
           hl: [S.where], left: [marked], right: [placeholder('?')],
-          caption: `${nKeep} of ${R0.rows.length} rows pass`,
+          caption: `${nKeep} of ${R0.rows.length} rows pass${nUnk ? `; ${nUnk} ${nUnk === 1 ? 'is' : 'are'} UNKNOWN (NULL), which does not pass` : ''}`,
           leftLabel: 'WHERE checks each row', rightLabel: '',
         });
         push(ctx, 'WHERE', {
@@ -2658,6 +2924,22 @@ function traceQuery(q, ctx) {
         caption: `${groups.length} group${groups.length === 1 ? '' : 's'}`,
         leftLabel: 'GROUP BY input', rightLabel: 'groups',
       });
+      if (q.having) {
+        CUR.clause = 'HAVING';
+        const grpOf = g => g.rows.map(r => r.vals);
+        const hv = groups.map(g => evalE(q.having, g.rows[0].vals, grpOf(g)));
+        const tf = v => (v === null ? 'UNKNOWN' : v ? 'TRUE' : 'FALSE');
+        const gspec = (g, i, o) => tableSpec(g.rel, Object.assign({ qual: qualIn, color: g.color, cls: 'group', colCls: grpCols, rowCls: () => `g${g.color}` }, o));
+        const nPass = hv.filter(v => v === true).length;
+        push(ctx, 'HAVING', { hl: [S.having], left: groups.map((g, i) => gspec(g, i)), right: [placeholder('?')], caption: 'Which groups pass?' });
+        push(ctx, 'HAVING', {
+          hl: [S.having],
+          left: groups.map((g, i) => gspec(g, i, { cls: `group ${hv[i] === true ? '' : 'gfail'}`, note: `${substText(src, q.having, g.rows[0].vals, grpOf(g))} → ${tf(hv[i])}` })),
+          right: nPass ? groups.filter((g, i) => hv[i] === true).map(g => gspec(g)) : [placeholder('no groups')],
+          caption: `${nPass} of ${groups.length} group${groups.length === 1 ? '' : 's'} pass${nPass === 1 && groups.length === 1 ? 'es' : ''}`,
+        });
+        groups = groups.filter((g, i) => hv[i] === true);
+      }
       CUR.clause = 'SELECT';
       const aggCols = R1.cols.map((c, j) => (aggArgCols.has(j) ? 'agg' : groupIdx.has(j) ? 'grp' : ''));
       const groupsLeft = () => groups.map(g => tableSpec(g.rel, { qual: qualIn, color: g.color, cls: 'group', colCls: aggCols, rowCls: () => `g${g.color} ${countStar ? 'aggrow' : ''}` }));
@@ -2728,6 +3010,17 @@ function traceQuery(q, ctx) {
         hl: selHl, hl2: aggHl, left: [leftSpec()], right: boxes('collapse').concat([tableSpec(OUT, { cls: 'out' })]),
         caption: `${R1.rows.length} ${countStar && !aggArgCols.size ? 'rows' : 'values'} → 1 value`, leftLabel: 'SELECT input', rightLabel: 'one row',
       });
+      if (q.having) {
+        CUR.clause = 'HAVING';
+        const hv = evalE(q.having, rowsV[0] || [], rowsV);
+        const kept = Object.assign({}, OUT, { rid: newRid('H'), rows: hv === true ? OUT.rows.map(r => Object.assign({}, r, { src: r.vals.map((_, j) => ck(OUT, r, j)) })) : [] });
+        push(ctx, 'HAVING', {
+          hl: [S.having], left: [tableSpec(OUT, { rowCls: () => (hv === true ? 'pass' : 'fail'), mark: () => (hv === true ? 'yes' : 'no') })],
+          right: [tableSpec(kept, { cls: 'out', empty: 'no rows' })],
+          caption: `${substText(src, q.having, rowsV[0] || [], rowsV)} → ${hv === null ? 'UNKNOWN' : hv ? 'TRUE' : 'FALSE'}`,
+        });
+        OUT = kept;
+      }
     }
   } else {
     CUR.clause = 'SELECT';
@@ -2790,6 +3083,7 @@ function traceQuery(q, ctx) {
   }
 
   /* ===== ORDER BY ===== */
+  let sortedKeys = null;
   if (orderKeys.length) {
     CUR.clause = 'ORDER BY';
     const ghosts = [];
@@ -2813,6 +3107,7 @@ function traceQuery(q, ctx) {
       return a - b;
     };
     const order = OUT.rows.map((_, i) => i).sort(cmp);
+    sortedKeys = order.map(i => keyVals[i]);
     const dirText = orderKeys.map(k => `${text(src, k.n)} ${k.dir === 'DESC' ? '↓ DESC' : '↑ ASC'}`).join(', then ');
     push(ctx, 'ORDER BY', {
       hl: [S.order], left: [tableSpec(OUT, { colCls: sortCls, ghost: ghosts, rowCls: rowColor })], right: [placeholder('?')],
@@ -2831,6 +3126,22 @@ function traceQuery(q, ctx) {
     OUT = SOUT;
   }
 
+  /* ===== LIMIT ===== */
+  if (q.limit !== null && q.limit !== undefined) {
+    CUR.clause = 'LIMIT';
+    const n = q.limit;
+    const LOUT = { rid: newRid('L'), title: 'result', cols: OUT.cols, fmts: OUT.fmts, rows: OUT.rows.slice(0, n).map(r => Object.assign({}, r, { src: r.vals.map((_, j) => ck(OUT, r, j)) })) };
+    const tie = sortedKeys && n > 0 && n < sortedKeys.length && JSON.stringify(sortedKeys[n - 1]) === JSON.stringify(sortedKeys[n]);
+    push(ctx, 'LIMIT', {
+      hl: [S.limit],
+      left: [tableSpec(OUT, { rowCls: (r, i) => `${rowColor(r)} ${i < n ? '' : 'fail'}`, mark: (r, i) => (i < n ? 'yes' : 'no') })],
+      right: [tableSpec(LOUT, { cls: 'out', rowCls: rowColor, empty: 'no rows' })],
+      caption: !orderKeys.length ? `Keep ${n} row${n === 1 ? '' : 's'}: without ORDER BY, which ones is not guaranteed`
+        : tie ? `Keep the first ${n}, but the next row ties with it and is cut off` : `Keep the first ${n} row${n === 1 ? '' : 's'}`,
+    });
+    OUT = LOUT;
+  }
+
   /* ===== RESULT ===== */
   const finalSpec = o => tableSpec(OUT, Object.assign({ rowCls: rowColor, empty: 'no rows' }, o));
   if (ctx.kind === 'main') {
@@ -2838,7 +3149,19 @@ function traceQuery(q, ctx) {
       hl: [], left: sourceSpecs(), right: [finalSpec({ cls: 'final', tag: null, title: 'Result' })],
       caption: `${OUT.rows.length} row${OUT.rows.length === 1 ? '' : 's'}`, leftLabel: 'from these tables', rightLabel: 'final output',
     });
-  } else if (ctx.kind === 'from') {
+  } else if (ctx.kind === 'inlist') {
+    push(ctx, 'RESULT', {
+      crumbLabel: '= list',
+      hl: [], left: sourceSpecs(), right: [finalSpec({ cls: 'temp', title: 'subquery result', tag: ctx.listTag || 'IN list' })],
+      caption: `${OUT.rows.length} value${OUT.rows.length === 1 ? '' : 's'} to compare against`,
+    });
+  } else if (ctx.kind === 'exists') {
+    push(ctx, 'RESULT', {
+      crumbLabel: OUT.rows.length ? '= TRUE' : '= FALSE',
+      hl: [], left: sourceSpecs(), right: [finalSpec({ cls: 'temp', title: 'subquery result', tag: 'EXISTS' })],
+      caption: OUT.rows.length ? `${OUT.rows.length} row${OUT.rows.length === 1 ? '' : 's'} came back, so EXISTS is TRUE` : 'No rows came back, so EXISTS is FALSE',
+    });
+  } else if (ctx.kind === 'from' || ctx.kind === 'operand') {
     OUT = Object.assign({}, OUT, { title: ctx.alias, tag: 'temporary' });
     push(ctx, 'RESULT', {
       crumbLabel: `= ${ctx.alias}`,
@@ -3511,7 +3834,7 @@ function traceRA(q, ctx) {
     if (n.op === 'σ') return `σ ${short(text(src, n.cond), 15)}`;
     if (n.op === 'π') return `π ${short(n.cols.map(c => (c.q ? c.q + '.' : '') + c.name).join(', '), 15)}`;
     if (n.op === 'ρ') return `ρ ${n.name}`;
-    if (n.op === '⋈') return n.cond ? '⋈ θ' : '⋈ natural';
+    if (n.op === '⋈') return `${n.outer ? { L: '⟕', R: '⟖', F: '⟗' }[n.outer] : '⋈'} ${n.cond ? 'θ' : 'natural'}`;
     return n.op;
   };
   const marks = n => ({ hl: [[n.s, n.e]], hl2: [n.headS !== undefined ? [n.headS, n.headE] : [n.opS, n.opE]] });
@@ -3603,7 +3926,7 @@ function traceRA(q, ctx) {
     else L.cols.forEach((c, i) => { const j = R.cols.findIndex(d => d.name.toLowerCase() === c.name.toLowerCase()); if (j >= 0 && !common.some(x => x[1] === j)) common.push([i, j]); });
     const test = (a, b) => (n.cond ? evalE(n.cond, a.vals.concat(b.vals), null) === true : common.every(([i, j]) => a.vals[i] !== null && a.vals[i] === b.vals[j]));
     const pass = L.rows.map(a => R.rows.map(b => test(a, b)));
-    const PR = { rid: newRid('A'), title: tt(n), cols: P.cols, rows: [] };
+    let PR = { rid: newRid('A'), title: tt(n), cols: P.cols, rows: [] };
     L.rows.forEach((a, i) => R.rows.forEach((b, j) => { if (pass[i][j]) PR.rows.push({ key: `${a.key}+${b.key}`, vals: a.vals.concat(b.vals), src: a.vals.map((_, k) => ck(L, a, k)).concat(b.vals.map((_, k) => ck(R, b, k))) }); }));
     const refs = n.cond ? refCols(n.cond) : new Set(common.flatMap(([i, j]) => [i, Lw + j]));
     const lCls = L.cols.map((c, j) => (refs.has(j) ? 'chk' : ''));
@@ -3631,12 +3954,48 @@ function traceRA(q, ctx) {
         caption: `${lab(L.rows[i])}: ${ok ? `${ok} match${ok > 1 ? 'es' : ''}` : 'no match'}`,
       });
     }
-    if (n.cond || !common.length) return PR;
+    let J = PR;
+    if (n.outer) {
+      const oL = n.outer !== 'R', oR = n.outer !== 'L';
+      const lHit = L.rows.map((_, i) => pass[i].some(Boolean));
+      const rHit = R.rows.map((_, j) => L.rows.some((__, i) => pass[i][j]));
+      const nulls = k => new Array(k).fill(null);
+      const PO = { rid: newRid('A'), title: tt(n), cols: P.cols, rows: [] };
+      L.rows.forEach((a, i) => {
+        R.rows.forEach((b, j) => { if (pass[i][j]) PO.rows.push({ key: `${a.key}+${b.key}`, vals: a.vals.concat(b.vals), src: a.vals.map((_, k) => ck(L, a, k)).concat(b.vals.map((_, k) => ck(R, b, k))) }); });
+        if (oL && !lHit[i]) PO.rows.push({ key: `${a.key}+∅`, vals: a.vals.concat(nulls(R.cols.length)), src: a.vals.map((_, k) => ck(L, a, k)).concat(nulls(R.cols.length)), padded: true });
+      });
+      if (oR) R.rows.forEach((b, j) => { if (!rHit[j]) PO.rows.push({ key: `∅+${b.key}`, vals: nulls(Lw).concat(b.vals), src: nulls(Lw).concat(b.vals.map((_, k) => ck(R, b, k))), padded: true }); });
+      const tup = rel => { const lb = labelOf(rel); return r => (r.vals.length <= 3 ? `(${r.vals.map(v => fmt(v)).join(', ')})` : lb(r)); };
+      const lost = (oL ? L.rows.filter((_, i) => !lHit[i]).map(tup(L)) : []).concat(oR ? R.rows.filter((_, j) => !rHit[j]).map(tup(R)) : []);
+      const side = { L: 'the left side', R: 'the right side', F: 'both sides' }[n.outer];
+      push(sc, '⋈', {
+        crumbLabel: crumb(n), ...marks(n),
+        left: [
+          spec(L, { colCls: lCls, rowCls: (r, i) => (oL && !lHit[i] ? 'nomatch' : ''), mark: (r, i) => (oL && !lHit[i] ? 'nomatch' : null) }),
+          spec(R, { colCls: rCls, rowCls: (r, j) => (oR && !rHit[j] ? 'nomatch' : ''), mark: (r, j) => (oR && !rHit[j] ? 'nomatch' : null) }),
+        ],
+        right: [spec(PO, { cls: 'out', rowCls: r => (r.padded ? 'padded' : '') })],
+        caption: lost.length ? `Outer join also keeps unmatched tuples from ${side}: ${lost.join(', ')}, padded with NULL` : 'Every tuple found a match, so nothing is padded with NULL',
+      });
+      J = PO;
+    }
+    if (n.cond || !common.length) return J;
     const dropR = new Set(common.map(([, j]) => Lw + j));
-    const keep = PR.cols.map((c, j) => j).filter(j => !dropR.has(j));
-    const O = { rid: newRid('A'), title: tt(n), cols: keep.map(j => PR.cols[j]), rows: PR.rows.map(r => carry(PR, r, keep)) };
+    const keep = J.cols.map((c, j) => j).filter(j => !dropR.has(j));
+    /* a right-only padded tuple takes the shared values from its right side */
+    const fromR = new Map(common.map(([i, j]) => [i, Lw + j]));
+    const O = {
+      rid: newRid('A'), title: tt(n), cols: keep.map(j => J.cols[j]),
+      rows: J.rows.map(r => {
+        const pick = j => (fromR.has(j) && r.vals[j] === null && r.vals[fromR.get(j)] !== null ? fromR.get(j) : j);
+        return { key: r.key, padded: r.padded, vals: keep.map(j => r.vals[pick(j)]), src: keep.map(j => ck(J, r, pick(j))) };
+      }),
+    };
+    PR = J;
     push(sc, '⋈', {
-      crumbLabel: crumb(n), ...marks(n), left: [spec(PR, { colCls: PR.cols.map((c, j) => (dropR.has(j) ? 'drop' : '')) })], right: [spec(O, { cls: 'out' })],
+      crumbLabel: crumb(n), ...marks(n), left: [spec(PR, { colCls: PR.cols.map((c, j) => (dropR.has(j) ? 'drop' : '')), rowCls: r => (r.padded ? 'padded' : '') })],
+      right: [spec(O, { cls: 'out', rowCls: r => (r.padded ? 'padded' : '') })],
       caption: `Natural join keeps one copy of ${names}`,
     });
     return O;
@@ -3714,13 +4073,90 @@ function traceRA(q, ctx) {
   return result;
 }
 
-if (typeof module !== 'undefined') module.exports = { setDataset, parse, tokenize, buildTrace, SqlError, fmt };
+/* ======================= SQL: UNION / INTERSECT / EXCEPT ======================= */
+function traceSetOp(q, ctx) {
+  const T = ctx.T;
+  let k = 0, comb = 0;
+  const sig = r => JSON.stringify(r.vals);
+  const family = (rel, j) => {
+    for (const r of rel.rows) { const v = r.vals[j]; if (v === null) continue; return typeof v === 'number' ? 'number' : isDate(v) ? 'date' : typeof v === 'string' ? 'text' : typeof v; }
+    return null;
+  };
+  const carry = (I, r) => ({ key: `${I.rid}:${r.key}`, vals: r.vals, src: r.vals.map((_, j) => ck(I, r, j)) });
+  const run = n => {
+    if (n.kind === 'setop') return combine(n);
+    const label = `query ${++k}`;
+    return traceQuery(n, { T, scopeId: `op${k}`, scopeLabel: label, kind: 'operand', alias: label, extraLeft: [], scopeSpan: [n.s, n.e], parentScope: null });
+  };
+  const top = q;
+  let topSc = null;
+  function combine(n) {
+    const L = run(n.l), R = run(n.r);
+    const sc = { T, scopeId: `set${comb++}`, scopeLabel: n === top ? 'combine' : `combine ${comb}`, kind: 'setop', extraLeft: [], scopeSpan: null };
+    if (n === top) topSc = sc;
+    const name = `${n.kw}${n.all ? ' ALL' : ''}`;
+    const E = msg => new SqlError(msg, n.kw, n.opSpan[0], n.opSpan[1]);
+    const names = rel => rel.cols.map(c => c.label || c.name).join(', ');
+    if (L.cols.length !== R.cols.length)
+      throw E(`${n.kw} needs both queries to return the same number of columns: ${L.cols.length} (${names(L)}) vs ${R.cols.length} (${names(R)}).`);
+    L.cols.forEach((c, j) => {
+      const a = family(L, j), b = family(R, j);
+      if (a && b && a !== b) throw E(`${n.kw} needs matching column types: ${c.label || c.name} holds ${a} values but ${R.cols[j].label || R.cols[j].name} holds ${b} values.`);
+    });
+    const cntR = new Map(), cntL = new Map();
+    R.rows.forEach(r => cntR.set(sig(r), (cntR.get(sig(r)) || 0) + 1));
+    L.rows.forEach(r => cntL.set(sig(r), (cntL.get(sig(r)) || 0) + 1));
+    let rows;
+    if (n.kw === 'UNION') rows = L.rows.map(r => carry(L, r)).concat(R.rows.map(r => carry(R, r)));
+    else if (n.kw === 'INTERSECT') {
+      const used = new Map();
+      rows = L.rows.filter(r => { const s = sig(r), u = used.get(s) || 0; if (u < (cntR.get(s) || 0)) { used.set(s, u + 1); return true; } return false; }).map(r => carry(L, r));
+    } else {
+      const used = new Map();
+      rows = L.rows.filter(r => { const s = sig(r), u = used.get(s) || 0; if (u < (cntR.get(s) || 0)) { used.set(s, u + 1); return false; } return true; }).map(r => carry(L, r));
+    }
+    const before = rows.length;
+    if (!n.all) { const seen = new Set(); rows = rows.filter(r => { const s = sig(r); if (seen.has(s)) return false; seen.add(s); return true; }); }
+    const O = { rid: newRid('U'), title: 'Result', cols: L.cols.map(c => ({ name: c.label || c.name, label: c.label || c.name })), fmts: L.fmts, rows };
+    const inBoth = r => cntL.has(sig(r)) && cntR.has(sig(r));
+    const tint = r => (inBoth(r) ? 'g3' : cntL.has(sig(r)) ? 'g0' : 'g1');
+    const renamed = L.cols.some((c, j) => (c.label || c.name).toLowerCase() !== (R.cols[j].label || R.cols[j].name).toLowerCase());
+    const head = rel => rel.cols.map(() => 'sel');
+    const temp = (rel, o) => tableSpec(rel, Object.assign({ cls: 'temp', tag: null }, o));
+    push(sc, n.kw, {
+      crumbLabel: name, hl: [n.opSpan],
+      left: [temp(L, { colCls: head(L) }), temp(R, { colCls: head(R) })], right: [placeholder('?')],
+      caption: `Compatible: ${L.cols.length} column${L.cols.length === 1 ? '' : 's'} each, matching types${renamed ? '; names come from the first query' : ''}`,
+    });
+    const keepL = n.kw === 'UNION' ? () => true : n.kw === 'INTERSECT' ? r => cntR.has(sig(r)) : r => !cntR.has(sig(r));
+    const what = { UNION: 'in either result', INTERSECT: 'in both results', EXCEPT: 'in the first result but not the second' }[n.kw];
+    push(sc, n.kw, {
+      crumbLabel: name, hl: [n.opSpan],
+      left: [
+        temp(L, { rowCls: r => `${tint(r)} ${keepL(r) ? '' : 'fail'}`, mark: r => (n.kw === 'UNION' ? null : keepL(r) ? 'yes' : 'no') }),
+        temp(R, { rowCls: r => `${tint(r)} ${n.kw === 'UNION' ? '' : 'fail'}` }),
+      ],
+      right: [tableSpec(O, { cls: 'out', rowCls: tint, empty: 'no rows' })],
+      caption: n.all
+        ? `${O.rows.length} row${O.rows.length === 1 ? '' : 's'} ${what}; ALL keeps duplicates`
+        : `${O.rows.length} row${O.rows.length === 1 ? '' : 's'} ${what}${before > O.rows.length ? `; duplicates removed (${before} → ${O.rows.length})` : ''}`,
+    });
+    return O;
+  }
+  const out = combine(q);
+  push(topSc, 'RESULT', {
+    hl: [], left: [], right: [tableSpec(out, { cls: 'final', tag: null, title: 'Result', empty: 'no rows' })],
+    caption: `${out.rows.length} row${out.rows.length === 1 ? '' : 's'}`,
+  });
+  return out;
+}
 
+if (typeof module !== 'undefined') module.exports = { setDataset, parse, tokenize, buildTrace, SqlError, fmt };
 /* =====================================================================
    UI: renders trace snapshots; all motion is derived from what changed
    between two consecutive snapshots (same key => same piece of data).
    ===================================================================== */
-const STAGE_CLS = { 'σ': 'where', 'π': 'select', 'ρ': 'order', '×': 'join', '⋈': 'join', '∪': 'group', '∩': 'group', '−': 'group', 'REL': 'from', 'ASSIGN': 'ddl', 'CREATE': 'ddl', 'PRIMARY KEY': 'con', 'CONSTRAINT': 'con', 'FOREIGN KEY': 'fk', 'DELETE': 'del', 'SET': 'upd', 'FK': 'fk', 'FROM': 'from', 'JOIN': 'join', 'WHERE': 'where', 'GROUP BY': 'group', 'SELECT': 'select', 'DISTINCT': 'distinct', 'ORDER BY': 'order', 'RESULT': 'result' };
+const STAGE_CLS = { 'HAVING': 'where', 'LIMIT': 'order', 'UNION': 'group', 'INTERSECT': 'group', 'EXCEPT': 'group', 'σ': 'where', 'π': 'select', 'ρ': 'order', '×': 'join', '⋈': 'join', '∪': 'group', '∩': 'group', '−': 'group', 'REL': 'from', 'ASSIGN': 'ddl', 'CREATE': 'ddl', 'PRIMARY KEY': 'con', 'CONSTRAINT': 'con', 'FOREIGN KEY': 'fk', 'DELETE': 'del', 'SET': 'upd', 'FK': 'fk', 'FROM': 'from', 'JOIN': 'join', 'WHERE': 'where', 'GROUP BY': 'group', 'SELECT': 'select', 'DISTINCT': 'distinct', 'ORDER BY': 'order', 'RESULT': 'result' };
 const CLOUD = 'M26,22 A49,49 0 0 1 108,22 A69,69 0 0 1 212,22 A57,57 0 0 1 311,22 A67,67 0 0 1 415,22 A53,53 0 0 1 503,22 A44,44 0 0 1 574,22 A32,32 0 0 1 574,80 A61,61 0 0 1 475,80 A70,70 0 0 1 355,80 A80,80 0 0 1 234,80 A69,69 0 0 1 119,80 A58,58 0 0 1 26,80 A32,32 0 0 1 26,22 Z';
 const SPEEDS = { slow: 3400, normal: 2200, fast: 1200 };
 
@@ -3803,7 +4239,7 @@ function renderTable(p) {
     (r.ghost || []).forEach(g => { h += `<div class="td ghost ${r.cls}" data-k="${esc(g.k)}"${g.f ? ` data-f="${esc(g.f)}"` : ''}>${esc(g.v)}</div>`; });
     if (hasMark) {
       const isPtr = p.pointer && /\bactive\b/.test(r.cls);
-      const m = isPtr ? `◂ ${esc(p.pointer)}` : r.mark === 'yes' ? '✓' : r.mark === 'no' ? '✗' : r.mark === 'dup' ? 'duplicate' : r.mark === 'nomatch' ? 'no match' : r.mark === 'del' ? 'delete' : r.mark === 'ref' ? '◂ refers to it' : '';
+      const m = isPtr ? `◂ ${esc(p.pointer)}` : r.mark === 'yes' ? '✓' : r.mark === 'no' ? '✗' : r.mark === 'dup' ? 'duplicate' : r.mark === 'nomatch' ? 'no match' : r.mark === 'unk' ? 'unknown' : r.mark === 'del' ? 'delete' : r.mark === 'ref' ? '◂ refers to it' : '';
       h += `<div class="td mk ${isPtr ? 'ptr' : r.mark || ''} ${r.cls}">${m}</div>`;
     }
   });
@@ -4198,9 +4634,9 @@ function loadPreset(k) {
 function loadDataset(d) {
   state.ds = d;
   setDataset(DATASETS[d]);
-  document.documentElement.dataset.ds = DATASETS[d].id;
+  document.documentElement.dataset.ds = DATASETS[d].theme || DATASETS[d].id;
   $('#emblem').textContent = DATASETS[d].emoji || '';
-  $('#art').innerHTML = ART[DATASETS[d].id] || '';
+  $('#art').innerHTML = ART[DATASETS[d].theme || DATASETS[d].id] || '';
   $('#dataset').value = String(d);
   let h = '<option value="scratch">✎ Write your own query</option>', group = null;
   presets().forEach((p, i) => {
@@ -4250,6 +4686,9 @@ const RA_KEYS = [
   ['π', 'π[]()', 2, 'Projection π[a, b](R)  (or: project[…](R))'],
   ['ρ', 'ρ[]()', 2, 'Rename ρ[S](R) or ρ[S(a, b)](R)  (or: rename[…](R))'],
   ['⋈', ' ⋈ ', 0, 'Natural join R ⋈ S, or theta join R ⋈[cond] S  (or: join)'],
+  ['⟕', ' ⟕ ', 0, 'Left outer join R ⟕ S or R ⟕[cond] S  (or: left join)'],
+  ['⟖', ' ⟖ ', 0, 'Right outer join  (or: right join)'],
+  ['⟗', ' ⟗ ', 0, 'Full outer join  (or: full join)'],
   ['×', ' × ', 0, 'Cross product  (or: cross)'],
   ['∪', ' ∪ ', 0, 'Union  (or: union)'],
   ['∩', ' ∩ ', 0, 'Intersection  (or: intersect)'],
@@ -4322,7 +4761,6 @@ window.addEventListener('resize', () => { paintEditor(); fitRegions(); });
 loadDataset(0);
 
 document.addEventListener('click', e => { const m = $('#menu'); if (m.open && !m.contains(e.target)) m.open = false; });
-
 </script>
 </body>
 </html>
